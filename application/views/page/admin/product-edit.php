@@ -253,11 +253,8 @@ $pri_img_url= site_url('admin-image-primary/');
           <table class="table table-bordered table-hover" id="variantTable">
             <thead>
               <tr>
-                <th>Type</th>
-                <th>Value</th>
-                <th>Price Modifier (₹)</th>
-                <th>Stock</th>
-                <th>SKU</th>
+                <th>Type</th><th>Value</th><th>Color</th>
+                <th>Price Modifier (₹)</th><th>Stock</th><th>SKU</th>
                 <th style="width:110px">Actions</th>
               </tr>
             </thead>
@@ -266,6 +263,14 @@ $pri_img_url= site_url('admin-image-primary/');
               <tr id="vrow_<?php echo $v['id']; ?>" data-id="<?php echo $v['id']; ?>">
                 <td><span class="label label-info"><?php echo htmlspecialchars(ucfirst($v['variant_type'])); ?></span></td>
                 <td><strong><?php echo htmlspecialchars($v['variant_value']); ?></strong></td>
+                <td>
+                  <?php if ($v['variant_type']==='color' && !empty($v['color_hex'])): ?>
+                    <span style="display:inline-flex;align-items:center;gap:4px">
+                      <span style="width:18px;height:18px;border-radius:50%;background:<?php echo htmlspecialchars($v['color_hex']); ?>;border:1px solid #ccc;display:inline-block"></span>
+                      <code style="font-size:.78rem"><?php echo htmlspecialchars($v['color_hex']); ?></code>
+                    </span>
+                  <?php else: ?>—<?php endif; ?>
+                </td>
                 <td><?php echo $v['price_modifier'] >= 0 ? '+' : ''; ?>₹<?php echo number_format((float)$v['price_modifier'],2); ?></td>
                 <td><?php echo (int)$v['stock_qty']; ?></td>
                 <td><?php echo htmlspecialchars($v['sku'] ?? '—'); ?></td>
@@ -276,7 +281,8 @@ $pri_img_url= site_url('admin-image-primary/');
                           data-value="<?php echo htmlspecialchars($v['variant_value']); ?>"
                           data-price="<?php echo $v['price_modifier']; ?>"
                           data-stock="<?php echo $v['stock_qty']; ?>"
-                          data-sku="<?php echo htmlspecialchars($v['sku'] ?? ''); ?>">
+                          data-sku="<?php echo htmlspecialchars($v['sku'] ?? ''); ?>"
+                          data-color="<?php echo htmlspecialchars($v['color_hex'] ?? ''); ?>">
                     <i class="fa fa-pencil"></i>
                   </button>
                   <button class="btn btn-xs btn-danger delete-variant-btn" data-id="<?php echo $v['id']; ?>">
@@ -341,6 +347,26 @@ $pri_img_url= site_url('admin-image-primary/');
               </div>
             </div>
           </div>
+
+          <!-- Color picker — shown only when type = color -->
+          <div class="row" id="editColorRow" style="display:none">
+            <div class="col-md-4">
+              <div class="form-group">
+                <label><i class="fa fa-paint-brush"></i> Color Code</label>
+                <div class="input-group">
+                  <input type="color" id="editColorPicker" value="#FF6B35"
+                         style="width:40px;height:34px;padding:2px;border:1px solid #ccc;border-radius:4px 0 0 4px;cursor:pointer">
+                  <input type="text" class="form-control" id="editColorHex"
+                         value="#FF6B35" maxlength="7" style="font-family:monospace"
+                         placeholder="#RRGGBB">
+                  <span class="input-group-addon" id="editColorSwatch"
+                        style="width:36px;background:#FF6B35;border-radius:0 4px 4px 0"></span>
+                </div>
+                <small class="text-muted">Shown as color swatch on the product page</small>
+              </div>
+            </div>
+          </div>
+
           <div class="row">
             <div class="col-md-12">
               <button class="btn btn-saffron" id="saveVariantBtn">

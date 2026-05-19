@@ -99,11 +99,12 @@ function updateCartItemAjax(cartId, qty) {
   .then(function(data) { if (data.success) location.reload(); });
 }
 
-// Remove item
+// Remove item — confirmation is handled by the modal in cart.inc (no confirm dialog)
 document.addEventListener('click', function(e) {
   var btn = e.target.closest('[data-remove-cart]');
   if (!btn) return;
-  if (!confirm('Remove this item from your cart?')) return;
+  /* Cart page uses its own modal confirmation (cart.inc), so skip here */
+  if (document.getElementById('removeCartModal')) return;
   var cartId = btn.dataset.removeCart;
   fetch(CART_AJAX_URL, {
     method: 'POST',
@@ -127,6 +128,58 @@ window.addEventListener('scroll', function() {
   var nav = document.getElementById('mainNav');
   if (nav) nav.classList.toggle('scrolled', window.scrollY > 20);
 });
+
+// ── Hover-open nav dropdowns (desktop ≥ 992px) ─────────────
+(function () {
+  function initHoverNav() {
+    if (window.innerWidth < 992) return;
+
+    /* 1. Top-level "Categories" dropdown */
+    document.querySelectorAll('.navbar-nav .nav-item.dropdown').forEach(function (item) {
+      var menu = item.querySelector(':scope > .dropdown-menu');
+      if (!menu) return;
+      item.addEventListener('mouseenter', function () {
+        menu.style.display = 'block';
+      });
+      item.addEventListener('mouseleave', function () {
+        menu.style.display = '';
+      });
+    });
+
+    /* 2. Nested dropend submenus */
+    document.querySelectorAll('.navbar-nav .dropdown-menu .dropend').forEach(function (item) {
+      var sub = item.querySelector(':scope > .dropdown-menu');
+      if (!sub) return;
+
+      item.addEventListener('mouseenter', function () {
+        sub.style.display    = 'block';
+        sub.style.position   = 'absolute';
+        sub.style.top        = '0';
+        sub.style.left       = item.offsetWidth + 'px';
+        sub.style.marginLeft = '0';
+        sub.style.zIndex     = '1050';
+      });
+      item.addEventListener('mouseleave', function () {
+        sub.style.display = '';
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initHoverNav);
+  } else {
+    initHoverNav();
+  }
+
+  /* Re-init if window resized across the 992px breakpoint */
+  var lastWidth = window.innerWidth;
+  window.addEventListener('resize', function () {
+    if (window.innerWidth !== lastWidth) {
+      lastWidth = window.innerWidth;
+      initHoverNav();
+    }
+  });
+})();
 
 // Price range label
 var priceRange = document.getElementById('priceRange');

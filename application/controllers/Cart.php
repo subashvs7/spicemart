@@ -14,6 +14,7 @@ class Cart extends CI_Controller {
         $data['all_categories'] = $this->db->query(
             'SELECT * FROM categories WHERE status=1 ORDER BY parent_id, name'
         )->result_array();
+        $data['app_settings'] = $this->spice_model->get_all_settings();
     }
 
     public function index()
@@ -34,14 +35,15 @@ class Cart extends CI_Controller {
 
         $shipping_free = (float)$this->spice_model->get_setting('free_shipping_above') ?: 499;
 
-        $data['js']            = 'cart.inc';
-        $data['cart_items']    = $items;
-        $data['subtotal']      = $subtotal;
-        $data['discount']      = $discount;
-        $data['coupon']        = $coupon;
-        $data['shipping']      = $shipping;
-        $data['grand_total']   = $total;
-        $data['shipping_free'] = $shipping_free;
+        $data['js']                  = 'cart.inc';
+        $data['cart_items']          = $items;
+        $data['subtotal']            = $subtotal;
+        $data['discount']            = $discount;
+        $data['coupon']              = $coupon;
+        $data['shipping']            = $shipping;
+        $data['grand_total']         = $total;
+        $data['shipping_free']       = $shipping_free;
+        $data['shipping_charge_raw'] = (float)$this->spice_model->get_setting('standard_charge') ?: 60;
 
         $this->load->view('inc/front-header', $data);
         $this->load->view('page/cart', $data);
@@ -276,7 +278,9 @@ class Cart extends CI_Controller {
         $order_id = (int)$order_id;
 
         $order = $this->db->query(
-            'SELECT * FROM orders WHERE id=? AND user_id=?', array($order_id, $user_id)
+            'SELECT o.*, u.name AS customer_name
+             FROM orders o JOIN users u ON u.id = o.user_id
+             WHERE o.id=? AND o.user_id=?', array($order_id, $user_id)
         )->row_array();
 
         if (!$order) redirect('home');

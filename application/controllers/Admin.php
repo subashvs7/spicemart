@@ -954,6 +954,51 @@ class Admin extends CI_Controller {
 
     // ── Variant AJAX ──────────────────────────────────────────────
 
+    public function get_product_gallery($product_id = 0)
+    {
+        $this->_require_admin();
+        header('Content-Type: application/json');
+        $product_id = (int)$product_id;
+
+        $images = $this->db->query(
+            'SELECT * FROM product_images WHERE product_id=? ORDER BY is_primary DESC, sort_order',
+            array($product_id)
+        )->result_array();
+
+        foreach ($images as &$img) {
+            $img['url'] = base_url('uploads/products/'.$img['image']);
+        }
+
+        echo json_encode(array('success'=>true,'images'=>$images));
+    }
+
+    public function get_product_variants($product_id = 0)
+    {
+        $this->_require_admin();
+        header('Content-Type: application/json');
+        $product_id = (int)$product_id;
+
+        $product = $this->db->query(
+            'SELECT id, name, price, offer_price FROM products WHERE id=?', array($product_id)
+        )->row_array();
+
+        if (!$product) {
+            echo json_encode(array('success'=>false,'message'=>'Product not found.'));
+            return;
+        }
+
+        $variants = $this->db->query(
+            'SELECT * FROM product_variants WHERE product_id=? ORDER BY variant_type, variant_value',
+            array($product_id)
+        )->result_array();
+
+        echo json_encode(array(
+            'success'  => true,
+            'product'  => $product,
+            'variants' => $variants,
+        ));
+    }
+
     public function variant_save()
     {
         $this->_require_admin();
@@ -966,6 +1011,9 @@ class Admin extends CI_Controller {
         $price_modifier = (float)$this->input->post('price_modifier');
         $stock_qty      = max(0, (int)$this->input->post('stock_qty'));
         $sku            = trim($this->input->post('sku') ?: '');
+        $raw_hex        = trim($this->input->post('color_hex') ?: '');
+        $color_hex      = ($variant_type === 'color' && preg_match('/^#[0-9a-fA-F]{3,6}$/', $raw_hex))
+                          ? $raw_hex : null;
 
         if (!$product_id || !$variant_type || !$variant_value) {
             echo json_encode(array('success'=>false,'message'=>'Type and value are required.'));
@@ -974,13 +1022,13 @@ class Admin extends CI_Controller {
 
         if ($variant_id) {
             $this->db->query(
-                'UPDATE product_variants SET variant_type=?,variant_value=?,price_modifier=?,stock_qty=?,sku=? WHERE id=? AND product_id=?',
-                array($variant_type,$variant_value,$price_modifier,$stock_qty,$sku,$variant_id,$product_id)
+                'UPDATE product_variants SET variant_type=?,variant_value=?,price_modifier=?,stock_qty=?,sku=?,color_hex=? WHERE id=? AND product_id=?',
+                array($variant_type,$variant_value,$price_modifier,$stock_qty,$sku,$color_hex,$variant_id,$product_id)
             );
         } else {
             $this->db->query(
-                'INSERT INTO product_variants (product_id,variant_type,variant_value,price_modifier,stock_qty,sku) VALUES (?,?,?,?,?,?)',
-                array($product_id,$variant_type,$variant_value,$price_modifier,$stock_qty,$sku)
+                'INSERT INTO product_variants (product_id,variant_type,variant_value,price_modifier,stock_qty,sku,color_hex) VALUES (?,?,?,?,?,?,?)',
+                array($product_id,$variant_type,$variant_value,$price_modifier,$stock_qty,$sku,$color_hex)
             );
             $variant_id = $this->db->insert_id();
         }
@@ -1104,6 +1152,85 @@ class Admin extends CI_Controller {
         }
 
         echo json_encode(array('success'=>true));
+    }
+
+    // ── Site Settings ─────────────────────────────────────────
+
+    public function site_settings()
+    {
+        $this->_require_admin();
+        if ($this->session->userdata(SESS_HEAD.'_user_role') !== 'admin') redirect('admin');
+        $this->_admin_base($data);
+
+        $success = '';
+        $errors  = array();
+        $tab     = $this->input->post('settings_tab') ?: ($this->input->get('tab') ?: 'general');
+
+        if ($this->input->server('REQUEST_METHOD') === 'POST') {
+
+            $map = array(
+                'general' => array('site_name','site_tagline','top_strip_text'),
+                'contact' => array('contact_phone','contact_email','contact_address'),
+                'social'  => array('social_facebook','social_instagram','social_youtube',
+                                   'social_whatsapp','social_twitter'),
+                'footer'  => array('footer_about','footer_copyright'),
+                'seo'     => array('meta_title','meta_desc','google_analytics'),
+            );
+
+            $keys = isset($map[$tab]) ? $map[$tab] : array();
+            foreach ($keys as $key) {
+                $this->_save_setting($key, trim($this->input->post($key) ?: ''));
+            }
+
+            // Logo upload (general tab only)
+            if ($tab === 'general' && !empty($_FILES['site_logo']['name'])) {
+                if (!is_dir(FCPATH.'uploads/logo/')) {
+                    mkdir(FCPATH.'uploads/logo/', 0755, true);
+                }
+                $this->load->library('upload', array(
+                    'upload_path'   => FCPATH.'uploads/logo/',
+                    'allowed_types' => 'jpg|jpeg|png|webp|svg|gif',
+                    'max_size'      => 1024,
+                    'encrypt_name'  => TRUE,
+                ));
+                if ($this->upload->do_upload('site_logo')) {
+                    $this->_save_setting('site_logo', $this->upload->data('file_name'));
+                } else {
+                    $errors[] = $this->upload->display_errors('','');
+                }
+            }
+
+            if (empty($errors)) {
+                $success = 'Settings saved successfully.';
+                // Bust the model cache so next page load picks up new values
+                $this->spice_model->get_all_settings();
+            }
+        }
+
+        $rows = $this->db->query('SELECT key_name, key_value FROM site_settings')->result_array();
+        $settings = array();
+        foreach ($rows as $r) { $settings[$r['key_name']] = $r['key_value']; }
+
+        $data['page']     = 'settings';
+        $data['js']       = 'admin-settings.inc';
+        $data['settings'] = $settings;
+        $data['success']  = $success;
+        $data['errors']   = $errors;
+        $data['tab']      = $tab;
+
+        $this->load->view('inc/header', $data);
+        $this->load->view('inc/left-menu', $data);
+        $this->load->view('page/admin/settings', $data);
+        $this->load->view('inc/footer', $data);
+    }
+
+    private function _save_setting($key, $value)
+    {
+        $this->db->query(
+            'INSERT INTO site_settings (key_name, key_value) VALUES (?,?)
+             ON DUPLICATE KEY UPDATE key_value=?',
+            array($key, $value, $value)
+        );
     }
 
     private function _export_csv($from, $to)

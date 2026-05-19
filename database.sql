@@ -89,6 +89,7 @@ CREATE TABLE product_variants (
     price_modifier DECIMAL(10,2) DEFAULT 0.00,
     stock_qty      INT UNSIGNED  DEFAULT 0,
     sku            VARCHAR(100)  DEFAULT NULL,
+    color_hex      VARCHAR(10)   DEFAULT NULL,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
@@ -250,6 +251,14 @@ CREATE TABLE shipping_settings (
     key_value TEXT         NOT NULL
 ) ENGINE=InnoDB;
 
+-- ── site_settings ────────────────────────────────────────────
+CREATE TABLE site_settings (
+    id        INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    key_name  VARCHAR(100) NOT NULL UNIQUE,
+    key_value TEXT         DEFAULT NULL,
+    key_group VARCHAR(50)  DEFAULT 'general'
+) ENGINE=InnoDB;
+
 -- ── otp_codes ────────────────────────────────────────────────
 CREATE TABLE otp_codes (
     id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -263,6 +272,13 @@ CREATE TABLE otp_codes (
 ) ENGINE=InnoDB;
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- ── Migration: add color_hex to existing databases ───────────
+-- Run this once if you already have the spicemart DB:
+-- ALTER TABLE product_variants ADD COLUMN color_hex VARCHAR(10) DEFAULT NULL AFTER sku;
+
+-- ── Migration: add site_settings table ───────────────────────
+-- CREATE TABLE site_settings (id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, key_name VARCHAR(100) NOT NULL UNIQUE, key_value TEXT DEFAULT NULL, key_group VARCHAR(50) DEFAULT 'general') ENGINE=InnoDB;
 
 -- ============================================================
 --  SEED DATA
@@ -335,6 +351,26 @@ INSERT INTO cms_pages (slug,title,content,status) VALUES
 ('terms','Terms & Conditions','<h4>Terms & Conditions</h4><p>By using SpiceMart you agree to these terms. Products are sold for personal use only. We reserve the right to modify prices and availability at any time. All orders are subject to confirmation.</p>',1),
 ('privacy','Privacy Policy','<h4>Privacy Policy</h4><p>SpiceMart collects personal information such as name, email, and address for order processing only. We do not share your data with third parties. Payment details are processed securely.</p>',1),
 ('return-policy','Return Policy','<h4>Return Policy</h4><p>We accept returns within 7 days of delivery for damaged or incorrect products. Items must be unused and in original packaging. Refunds are processed within 5-7 business days.</p>',1);
+
+-- Site Settings
+INSERT INTO site_settings (key_name, key_value, key_group) VALUES
+('site_name',        'SpiceMart',                                                                         'general'),
+('site_tagline',     'Pure & Natural',                                                                    'general'),
+('site_logo',        NULL,                                                                                'general'),
+('top_strip_text',   '🚚 Free shipping on orders above ₹499 | 100% Pure & Natural | Cash on Delivery available', 'general'),
+('contact_phone',    '+91 98765 43210',                                                                   'contact'),
+('contact_email',    'hello@spicemart.in',                                                                'contact'),
+('contact_address',  'Koyambedu Market, Chennai – 600092',                                               'contact'),
+('footer_about',     'Bringing the finest farm-fresh spices and masalas directly to your kitchen. 100% pure, no additives, no compromises.', 'footer'),
+('footer_copyright', 'SpiceMart. All rights reserved.',                                                  'footer'),
+('social_facebook',  '#',                                                                                 'social'),
+('social_instagram', '#',                                                                                 'social'),
+('social_youtube',   '#',                                                                                 'social'),
+('social_whatsapp',  '#',                                                                                 'social'),
+('social_twitter',   '#',                                                                                 'social'),
+('meta_title',       'SpiceMart – Pure Spices & Masala',                                                 'seo'),
+('meta_desc',        'Buy premium quality spices, masalas and dry fruits online. 100% pure, farm fresh, no additives.', 'seo'),
+('google_analytics', '',                                                                                  'seo');
 
 -- Shipping Settings
 INSERT INTO shipping_settings (key_name,key_value) VALUES

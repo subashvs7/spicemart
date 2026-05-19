@@ -16,14 +16,28 @@
     variantGroups[type].push(btn);
 
     btn.addEventListener('click', function () {
-      // Deselect siblings
+      var isColor = !!btn.dataset.colorHex;
+
+      // Deselect all siblings in this group
       variantGroups[type].forEach(function (b) {
-        b.classList.remove('btn-saffron', 'active');
-        b.classList.add('btn-outline-secondary');
+        if (b.dataset.colorHex) {
+          b.classList.remove('swatch-selected');
+        } else {
+          b.classList.remove('btn-saffron', 'active');
+          b.classList.add('btn-outline-secondary');
+        }
       });
-      // Select this one
-      btn.classList.remove('btn-outline-secondary');
-      btn.classList.add('btn-saffron', 'active');
+
+      // Select this button
+      if (isColor) {
+        btn.classList.add('swatch-selected');
+        // Show color name label
+        var labelEl = document.getElementById('colorNameLabel_' + type);
+        if (labelEl) labelEl.textContent = btn.dataset.colorName || '';
+      } else {
+        btn.classList.remove('btn-outline-secondary');
+        btn.classList.add('btn-saffron', 'active');
+      }
 
       selected[type] = {
         id:       btn.dataset.variantId,

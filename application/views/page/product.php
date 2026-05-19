@@ -89,27 +89,69 @@
           $variantGroups[$v['variant_type']][] = $v;
         }
         foreach ($variantGroups as $vtype => $vopts):
+          $isColor = ($vtype === 'color');
         ?>
-        <div class="mb-2">
-          <span class="fw-600 small me-2">
-            <?php echo htmlspecialchars(ucfirst($vtype)); ?>:
-            <span class="text-danger small" id="req_<?php echo htmlspecialchars($vtype); ?>" style="display:none">* required</span>
-          </span>
-          <?php foreach ($vopts as $vo): ?>
-            <button type="button"
-                    class="btn btn-sm btn-outline-secondary me-1 mb-1 variant-btn"
-                    data-variant-id="<?php echo $vo['id']; ?>"
-                    data-variant-type="<?php echo htmlspecialchars($vtype); ?>"
-                    data-variant-value="<?php echo htmlspecialchars($vo['variant_value']); ?>"
-                    data-price-mod="<?php echo $vo['price_modifier']; ?>"
-                    data-stock="<?php echo (int)$vo['stock_qty']; ?>"
-                    data-sku="<?php echo htmlspecialchars($vo['sku'] ?? ''); ?>">
-              <?php echo htmlspecialchars($vo['variant_value']); ?>
-              <?php if ($vo['price_modifier'] != 0): ?>
-                <small>(<?php echo $vo['price_modifier']>0?'+':''; ?>₹<?php echo abs($vo['price_modifier']); ?>)</small>
-              <?php endif; ?>
-            </button>
+        <div class="mb-3">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="fw-600 small">
+              <?php echo htmlspecialchars(ucfirst($vtype)); ?>:
+            </span>
+            <span class="text-danger small fw-500" id="req_<?php echo htmlspecialchars($vtype); ?>"
+                  style="display:none">⚠ Please select</span>
+            <?php if ($isColor): ?>
+              <span class="text-muted small" id="colorNameLabel_<?php echo htmlspecialchars($vtype); ?>"></span>
+            <?php endif; ?>
+          </div>
+
+          <div class="d-flex flex-wrap gap-2">
+          <?php foreach ($vopts as $vo):
+            $hasHex   = ($isColor && !empty($vo['color_hex']));
+            $modLabel = '';
+            if ($vo['price_modifier'] != 0) {
+              $modLabel = ' (' . ($vo['price_modifier'] > 0 ? '+' : '') . '₹' . abs($vo['price_modifier']) . ')';
+            }
+          ?>
+
+            <?php if ($hasHex): ?>
+              <!-- Color swatch button -->
+              <button type="button"
+                      class="color-swatch-btn variant-btn"
+                      data-variant-id="<?php echo $vo['id']; ?>"
+                      data-variant-type="<?php echo htmlspecialchars($vtype); ?>"
+                      data-variant-value="<?php echo htmlspecialchars($vo['variant_value']); ?>"
+                      data-price-mod="<?php echo $vo['price_modifier']; ?>"
+                      data-stock="<?php echo (int)$vo['stock_qty']; ?>"
+                      data-sku="<?php echo htmlspecialchars($vo['sku'] ?? ''); ?>"
+                      data-color-hex="<?php echo htmlspecialchars($vo['color_hex']); ?>"
+                      data-color-name="<?php echo htmlspecialchars($vo['variant_value']); ?>"
+                      style="background:<?php echo htmlspecialchars($vo['color_hex']); ?>"
+                      title="<?php echo htmlspecialchars($vo['variant_value'].$modLabel); ?>"
+                      aria-label="<?php echo htmlspecialchars($vo['variant_value']); ?>">
+                <?php if ((int)$vo['stock_qty'] === 0): ?>
+                  <span class="swatch-oos"></span>
+                <?php endif; ?>
+              </button>
+
+            <?php else: ?>
+              <!-- Text / size button -->
+              <button type="button"
+                      class="btn btn-sm btn-outline-secondary variant-btn"
+                      data-variant-id="<?php echo $vo['id']; ?>"
+                      data-variant-type="<?php echo htmlspecialchars($vtype); ?>"
+                      data-variant-value="<?php echo htmlspecialchars($vo['variant_value']); ?>"
+                      data-price-mod="<?php echo $vo['price_modifier']; ?>"
+                      data-stock="<?php echo (int)$vo['stock_qty']; ?>"
+                      data-sku="<?php echo htmlspecialchars($vo['sku'] ?? ''); ?>"
+                      <?php if ((int)$vo['stock_qty'] === 0): ?>disabled title="Out of stock"<?php endif; ?>>
+                <?php echo htmlspecialchars($vo['variant_value']); ?>
+                <?php if ($modLabel): ?>
+                  <small class="opacity-75"><?php echo $modLabel; ?></small>
+                <?php endif; ?>
+              </button>
+            <?php endif; ?>
+
           <?php endforeach; ?>
+          </div>
         </div>
         <?php endforeach; ?>
         <div class="small text-muted mt-1" id="variantSku"></div>

@@ -85,7 +85,11 @@
             <div class="col-md-12">
               <div class="form-group">
                 <label>Content *</label>
-                <textarea class="form-control" name="content" id="pageContent" rows="10" required></textarea>
+                <!-- CKEditor replaces this textarea — do NOT use required attribute -->
+                <textarea name="content" id="pageContent" rows="10"></textarea>
+                <div id="pageContentError" class="text-danger small" style="display:none">
+                  <i class="fa fa-exclamation-circle"></i> Content is required.
+                </div>
               </div>
             </div>
             <div class="col-md-6">

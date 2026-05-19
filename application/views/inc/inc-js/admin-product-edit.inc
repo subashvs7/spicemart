@@ -121,11 +121,26 @@ $(function () {
     $('#galleryBadge').text($('.gallery-item').length);
   }
 
-  // ── Variant Type Dropdown ──────────────────────────────────
+  // ── Variant Type Dropdown — show/hide color picker ──────────
 
-  $('#variantValue').on('input', function () {
-    var sel = document.getElementById('variantTypeSelect');
-    if (sel.value === 'color') updateSwatch(this.value);
+  $('#variantTypeSelect').on('change', function () {
+    var val = $(this).val();
+    if (val === 'custom') { $('#variantTypeCustom').show(); }
+    else                  { $('#variantTypeCustom').hide().val(''); }
+    $('#editColorRow').toggle(val === 'color');
+  });
+
+  // Sync color picker ↔ hex input ↔ swatch
+  $('#editColorPicker').on('input', function () {
+    $('#editColorHex').val(this.value);
+    $('#editColorSwatch').css('background', this.value);
+  });
+  $('#editColorHex').on('input', function () {
+    var hex = this.value;
+    if (/^#[0-9a-fA-F]{6}$/.test(hex)) {
+      $('#editColorPicker').val(hex);
+      $('#editColorSwatch').css('background', hex);
+    }
   });
 
   // ── Save Variant ───────────────────────────────────────────
@@ -137,6 +152,7 @@ $(function () {
     var price      = $('#variantPrice').val();
     var stock      = $('#variantStock').val();
     var sku        = $.trim($('#variantSku').val());
+    var hex        = type === 'color' ? $.trim($('#editColorHex').val()) : '';
     var editId     = $('#editVariantId').val();
 
     if (!type)  { alert('Please select or enter a variant type.'); return; }
@@ -152,7 +168,8 @@ $(function () {
       variant_value : value,
       price_modifier: price,
       stock_qty     : stock,
-      sku           : sku
+      sku           : sku,
+      color_hex     : hex
     }, function (res) {
       if (res.success) {
         var modifier = parseFloat(price);
@@ -205,8 +222,9 @@ $(function () {
     var price = $(this).data('price');
     var stock = $(this).data('stock');
     var sku   = $(this).data('sku');
+    var color = $(this).data('color') || '#FF6B35';
 
-    var knownTypes = ['size','color','pack'];
+    var knownTypes = ['size','color','pack','weight'];
     var sel        = document.getElementById('variantTypeSelect');
 
     if (knownTypes.indexOf(type) >= 0) {
@@ -215,6 +233,16 @@ $(function () {
     } else {
       sel.value = 'custom';
       $('#variantTypeCustom').show().val(type);
+    }
+
+    // Show/hide color picker
+    if (type === 'color') {
+      $('#editColorRow').show();
+      $('#editColorPicker').val(color);
+      $('#editColorHex').val(color);
+      $('#editColorSwatch').css('background', color);
+    } else {
+      $('#editColorRow').hide();
     }
 
     $('#editVariantId').val(id);

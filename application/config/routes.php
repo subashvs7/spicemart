@@ -50,6 +50,8 @@ $route['razorpay-callback']        = 'cart/razorpay_callback';
 // ── Admin ─────────────────────────────────────────────────────
 $route['admin']              = 'admin/index';
 $route['admin-product/(:num)']        = 'admin/product_edit/$1';
+$route['admin-get-variants/(:num)']   = 'admin/get_product_variants/$1';
+$route['admin-get-gallery/(:num)']    = 'admin/get_product_gallery/$1';
 $route['admin-variant-save']          = 'admin/variant_save';
 $route['admin-variant-delete/(:num)'] = 'admin/variant_delete/$1';
 $route['admin-image-upload']          = 'admin/image_upload';
@@ -68,3 +70,4 @@ $route['admin-shipping']     = 'admin/shipping';
 $route['admin-returns']      = 'admin/returns';
 $route['admin-contacts']     = 'admin/contacts';
 $route['admin-roles']        = 'admin/admin_roles';
+$route['admin-settings']     = 'admin/site_settings';

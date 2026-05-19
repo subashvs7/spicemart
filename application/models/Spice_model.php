@@ -21,9 +21,11 @@ class Spice_model extends CI_Model {
         return $this->db->query(
             'SELECT c.id AS cart_id, c.product_id, c.quantity,
                     c.variant_id, c.variant_label,
-                    p.name, p.price, p.offer_price, p.image, p.stock_qty
+                    p.name, p.price, p.offer_price, p.image, p.stock_qty,
+                    pv.variant_type, pv.variant_value, pv.color_hex
              FROM cart c
-             JOIN products p ON p.id=c.product_id
+             JOIN products p ON p.id = c.product_id
+             LEFT JOIN product_variants pv ON pv.id = c.variant_id
              WHERE c.user_id=?', array($user_id)
         )->result_array();
     }
@@ -171,6 +173,18 @@ class Spice_model extends CI_Model {
     }
 
     // ── Helpers ───────────────────────────────────────────────────
+
+    public function get_all_settings()
+    {
+        static $cache = null;
+        if ($cache !== null) return $cache;
+        $rows = $this->db->query('SELECT key_name, key_value FROM site_settings')->result_array();
+        $cache = array();
+        foreach ($rows as $r) {
+            $cache[$r['key_name']] = $r['key_value'];
+        }
+        return $cache;
+    }
 
     public function make_slug($str)
     {

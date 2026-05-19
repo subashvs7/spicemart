@@ -108,6 +108,14 @@
         </a>
       </li>
 
+      <?php if (isset($admin_role) && $admin_role === 'admin'): ?>
+      <li <?php if ($page === 'settings') echo 'class="active"'; ?>>
+        <a href="<?php echo site_url('admin-settings') ?>">
+          <i class="fa fa-cog"></i> <span>App Settings</span>
+        </a>
+      </li>
+      <?php endif; ?>
+
       <li class="divider"></li>
 
       <li>

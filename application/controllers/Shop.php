@@ -14,6 +14,7 @@ class Shop extends CI_Controller {
         $data['all_categories'] = $this->db->query(
             'SELECT * FROM categories WHERE status=1 ORDER BY parent_id, name'
         )->result_array();
+        $data['app_settings'] = $this->spice_model->get_all_settings();
     }
 
     public function index($page_num = 1)
