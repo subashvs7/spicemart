@@ -1,0 +1,27 @@
+# Composer / PHP dependencies
+vendor/
+
+# Uploaded user content (keep directory, ignore files)
+uploads/products/*
+uploads/banners/*
+!uploads/products/index.html
+!uploads/banners/index.html
+
+# CodeIgniter cache & logs
+application/cache/*
+application/logs/*.log
+!application/cache/index.html
+!application/logs/index.html
+
+# Claude Code local settings
+.claude/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Environment / local config overrides
+.env
+*.local.php
