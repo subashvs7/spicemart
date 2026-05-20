@@ -294,4 +294,35 @@ class Shop extends CI_Controller {
         $this->load->view('page/product', $data);
         $this->load->view('inc/front-footer', $data);
     }
+
+    public function variant_info($id = 0)
+    {
+        $id = (int)$id;
+        $this->output->set_content_type('application/json');
+
+        if (!$id) {
+            echo json_encode(['ok' => false, 'message' => 'Invalid ID']);
+            return;
+        }
+
+        $v = $this->db->query(
+            'SELECT variant_type, variant_value, price_modifier, stock_qty, sku
+             FROM product_variants WHERE id=? LIMIT 1',
+            [$id]
+        )->row_array();
+
+        if (!$v) {
+            echo json_encode(['ok' => false, 'message' => 'Not found']);
+            return;
+        }
+
+        echo json_encode([
+            'ok'             => true,
+            'variant_type'   => $v['variant_type'],
+            'variant_value'  => $v['variant_value'],
+            'price_modifier' => (float)$v['price_modifier'],
+            'stock_qty'      => (int)$v['stock_qty'],
+            'sku'            => $v['sku'] ?? '',
+        ]);
+    }
 }

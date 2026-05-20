@@ -521,22 +521,40 @@ class Admin extends CI_Controller {
         $this->_require_admin();
         $this->_admin_base($data);
 
-        $errors = array(); $success = '';
+        // ── Hard delete (runs first so it can't conflict with POST) ──
+        $action  = $this->input->get('action') ?: '';
+        $edit_id = (int)$this->input->get('edit');
+        if ($action === 'delete' && $edit_id) {
+            $row = $this->db->query('SELECT image FROM banners WHERE id=? LIMIT 1', array($edit_id))->row_array();
+            if (!empty($row['image'])) {
+                $file = FCPATH . 'uploads/banners/' . $row['image'];
+                if (is_file($file)) {
+                    @unlink($file);
+                }
+            }
+            $this->db->query('DELETE FROM banners WHERE id=?', array($edit_id));
+            $this->session->set_flashdata('banner_msg', 'Banner deleted.');
+            redirect('admin-banners');
+        }
+
+        // ── PRG: read flash success set by a previous redirect ──────
+        $errors  = array();
+        $success = $this->session->flashdata('banner_msg') ?: '';
 
         if ($this->input->server('REQUEST_METHOD') === 'POST') {
-            $banner_id = (int)$this->input->post('banner_id');
-            $title     = trim($this->input->post('title') ?: '');
-            $subtitle  = trim($this->input->post('subtitle') ?: '');
-            $link_url  = trim($this->input->post('link_url') ?: '');
-            $btn_text  = trim($this->input->post('btn_text') ?: 'Shop Now');
-            $type      = $this->input->post('type') ?: 'slider';
-            $sort_order= (int)$this->input->post('sort_order');
-            $status    = (int)$this->input->post('status');
+            $banner_id  = (int)$this->input->post('banner_id');
+            $title      = trim($this->input->post('title') ?: '');
+            $subtitle   = trim($this->input->post('subtitle') ?: '');
+            $link_url   = trim($this->input->post('link_url') ?: '');
+            $btn_text   = trim($this->input->post('btn_text') ?: 'Shop Now');
+            $type       = $this->input->post('type') ?: 'slider';
+            $sort_order = (int)$this->input->post('sort_order');
+            $status     = (int)$this->input->post('status');
 
             $image_name = trim($this->input->post('existing_image') ?: '');
             if (!empty($_FILES['image']['name'])) {
                 $this->load->library('upload', array(
-                    'upload_path'   => FCPATH.'uploads/banners/',
+                    'upload_path'   => FCPATH . 'uploads/banners/',
                     'allowed_types' => 'jpg|jpeg|png|webp|gif|svg',
                     'max_size'      => 3072,
                     'encrypt_name'  => TRUE,
@@ -544,34 +562,31 @@ class Admin extends CI_Controller {
                 if ($this->upload->do_upload('image')) {
                     $image_name = $this->upload->data('file_name');
                 } else {
-                    $errors[] = $this->upload->display_errors('','');
+                    $errors[] = $this->upload->display_errors('', '');
                 }
             }
 
-            if (!$image_name && !$banner_id) $errors[] = 'Banner image is required.';
+            if (!$image_name && !$banner_id) {
+                $errors[] = 'Banner image is required.';
+            }
 
             if (empty($errors)) {
                 if ($banner_id) {
                     $this->db->query(
                         'UPDATE banners SET title=?,subtitle=?,image=?,link_url=?,btn_text=?,type=?,sort_order=?,status=? WHERE id=?',
-                        array($title,$subtitle,$image_name,$link_url,$btn_text,$type,$sort_order,$status,$banner_id)
+                        array($title, $subtitle, $image_name, $link_url, $btn_text, $type, $sort_order, $status, $banner_id)
                     );
-                    $success = 'Banner updated.';
+                    $this->session->set_flashdata('banner_msg', 'Banner updated.');
                 } else {
                     $this->db->query(
                         'INSERT INTO banners (title,subtitle,image,link_url,btn_text,type,sort_order,status) VALUES (?,?,?,?,?,?,?,?)',
-                        array($title,$subtitle,$image_name,$link_url,$btn_text,$type,$sort_order,$status)
+                        array($title, $subtitle, $image_name, $link_url, $btn_text, $type, $sort_order, $status)
                     );
-                    $success = 'Banner added.';
+                    $this->session->set_flashdata('banner_msg', 'Banner added.');
                 }
+                // PRG: redirect so a page refresh never re-submits the form
+                redirect('admin-banners');
             }
-        }
-
-        $action  = $this->input->get('action') ?: '';
-        $edit_id = (int)$this->input->get('edit');
-        if ($action === 'delete' && $edit_id) {
-            $this->db->query('DELETE FROM banners WHERE id=?', array($edit_id));
-            redirect('admin-banners');
         }
 
         $banners = $this->db->query('SELECT * FROM banners ORDER BY type, sort_order')->result_array();

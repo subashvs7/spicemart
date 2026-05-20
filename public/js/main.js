@@ -73,8 +73,9 @@ document.addEventListener('click', function(e) {
   });
 });
 
-// Qty +/- buttons
+// Qty +/- buttons — cart.inc takes over on the cart page via window._cartIncActive
 document.addEventListener('click', function(e) {
+  if (window._cartIncActive) return;
   var btn = e.target.closest('[data-qty-change]');
   if (!btn) return;
   var cartId = btn.dataset.cartId;
@@ -87,6 +88,7 @@ document.addEventListener('click', function(e) {
 });
 
 document.addEventListener('change', function(e) {
+  if (window._cartIncActive) return;
   if (!e.target.classList.contains('qty-input')) return;
   var cartId = e.target.dataset.cartId;
   var newQty = Math.max(1, parseInt(e.target.value, 10) || 1);

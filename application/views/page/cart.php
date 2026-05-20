@@ -226,8 +226,8 @@ $remaining    = max(0, $free_thresh - $subtotal);
           $orig        = (float)$item['price'];
           $save_pct    = $item['saving_pct'];
           $row_total   = $item['row_total'];
-          $isColor     = (!empty($item['variant_type']) && $item['variant_type'] === 'color');
-          $hasHex      = ($isColor && !empty($item['color_hex']));
+          $isColor     = !empty($item['variant_type']) && $item['variant_type'] === 'color';
+          $hasHex      = $isColor && !empty($item['color_hex']);
           $variantParts = array();
           if (!empty($item['variant_label'])) {
             $variantParts = array_map('trim', explode('|', $item['variant_label']));
@@ -352,7 +352,7 @@ $remaining    = max(0, $free_thresh - $subtotal);
           <!-- Desktop: Row total -->
           <div class="cart-total-col d-none d-md-block">
             <span class="row-total-val"
-                  id="row-total-<?php echo $item['cart_id']; ?>">
+                  id="row-total-<?php echo $item['cart_id']; ?>-desktop">
               <?php echo $this->spice_model->rupees($row_total); ?>
             </span>
           </div>

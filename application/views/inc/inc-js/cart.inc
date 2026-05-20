@@ -2,7 +2,10 @@
 (function () {
   'use strict';
 
-  /* ── Override main.js updateCartItemAjax to avoid page reload ── */
+  /* Tell main.js to skip its [data-qty-change] and .qty-input handlers — we own those here */
+  window._cartIncActive = true;
+
+  /* ── Override main.js updateCartItemAjax so it never calls location.reload() ── */
   window.updateCartItemAjax = function (cartId, qty) {
     fetch(CART_DATA.cartAjaxUrl, {
       method : 'POST',
@@ -19,7 +22,10 @@
   };
 
   /* ════════════════════════════════════════════════════════════
-     QTY CONTROLS — sync +/- buttons disabled state after change
+     QTY CONTROLS
+     Each cart row has TWO qty inputs (mobile + desktop).
+     We read from the clicked button's own .qty-ctrl sibling
+     and write to ALL inputs that share the same data-cart-id.
   ════════════════════════════════════════════════════════════ */
   document.addEventListener('click', function (e) {
     var btn = e.target.closest('[data-qty-change]');
@@ -30,11 +36,16 @@
     var row    = document.getElementById('cart-row-' + cartId);
     if (!row) return;
 
-    var input  = row.querySelector('.qty-input[data-cart-id="' + cartId + '"]');
-    var stock  = parseInt(row.dataset.stock, 10) || 99;
-    var newQty = Math.max(1, Math.min(stock, parseInt(input.value, 10) + delta));
+    /* Read from the button's own qty-ctrl so we always get the right current value */
+    var ctrl      = btn.closest('.qty-ctrl');
+    var ctrlInput = ctrl ? ctrl.querySelector('.qty-input') : row.querySelector('.qty-input');
+    if (!ctrlInput) return;
 
-    input.value = newQty;
+    var stock  = parseInt(row.dataset.stock, 10) || 99;
+    var newQty = Math.max(1, Math.min(stock, parseInt(ctrlInput.value, 10) + delta));
+
+    /* Sync both mobile and desktop inputs */
+    syncAllInputs(cartId, newQty);
     syncQtyButtons(row, newQty, stock);
     updateRowTotal(row, newQty);
     recalcTotals();
@@ -48,34 +59,40 @@
     if (!row) return;
     var stock  = parseInt(row.dataset.stock, 10) || 99;
     var newQty = Math.max(1, Math.min(stock, parseInt(e.target.value, 10) || 1));
-    e.target.value = newQty;
+
+    /* Sync both mobile and desktop inputs */
+    syncAllInputs(cartId, newQty);
     syncQtyButtons(row, newQty, stock);
     updateRowTotal(row, newQty);
     recalcTotals();
     updateCartItemAjax(cartId, newQty);
   });
 
+  /* Update every qty input that belongs to this cart item */
+  function syncAllInputs(cartId, qty) {
+    document.querySelectorAll('.qty-input[data-cart-id="' + cartId + '"]').forEach(function (inp) {
+      inp.value = qty;
+    });
+  }
+
+  /* Disable/enable +/- buttons in EVERY qty-ctrl within the row */
   function syncQtyButtons(row, qty, stock) {
-    var btnMinus = row.querySelector('[data-qty-change="-1"]');
-    var btnPlus  = row.querySelector('[data-qty-change="1"]');
-    if (btnMinus) btnMinus.disabled = (qty <= 1);
-    if (btnPlus)  btnPlus.disabled  = (qty >= stock);
+    row.querySelectorAll('[data-qty-change="-1"]').forEach(function (b) { b.disabled = (qty <= 1); });
+    row.querySelectorAll('[data-qty-change="1"]').forEach(function (b)  { b.disabled = (qty >= stock); });
   }
 
   /* ════════════════════════════════════════════════════════════
-     REMOVE ITEM — show confirmation modal, then remove on confirm
+     REMOVE ITEM — confirmation modal then remove on confirm
   ════════════════════════════════════════════════════════════ */
-  var pendingRemoveId  = null;
-  var removeModal      = new bootstrap.Modal(document.getElementById('removeCartModal'));
+  var pendingRemoveId = null;
+  var removeModal     = new bootstrap.Modal(document.getElementById('removeCartModal'));
 
-  /* Open modal when trash button clicked */
   document.addEventListener('click', function (e) {
     var btn = e.target.closest('[data-remove-cart]');
     if (!btn) return;
 
     pendingRemoveId = btn.dataset.removeCart;
 
-    /* Show the product name inside the modal */
     var row      = document.getElementById('cart-row-' + pendingRemoveId);
     var nameEl   = row ? row.querySelector('.cart-item-name') : null;
     var nameText = nameEl ? nameEl.textContent.trim() : 'this item';
@@ -85,7 +102,6 @@
     removeModal.show();
   });
 
-  /* Confirmed — do the actual removal */
   document.getElementById('confirmRemoveBtn').addEventListener('click', function () {
     if (!pendingRemoveId) return;
     removeModal.hide();
@@ -122,29 +138,31 @@
      LIVE TOTALS RECALCULATION
   ════════════════════════════════════════════════════════════ */
   function updateRowTotal(row, qty) {
-    var price     = parseFloat(row.dataset.price) || 0;
-    var rowTotal  = price * qty;
-    var cartId    = row.dataset.cartId;
-
-    /* Update both desktop and mobile row-total spans */
-    var spans = document.querySelectorAll('#row-total-' + cartId);
-    spans.forEach(function (el) { el.textContent = formatRupee(rowTotal); });
+    var price    = parseFloat(row.dataset.price) || 0;
+    var rowTotal = price * qty;
+    var cartId   = row.dataset.cartId;
+    /* Update mobile span (id="row-total-X") and desktop span (id="row-total-X-desktop") */
+    var mobileEl  = document.getElementById('row-total-' + cartId);
+    var desktopEl = document.getElementById('row-total-' + cartId + '-desktop');
+    if (mobileEl)  mobileEl.textContent  = formatRupee(rowTotal);
+    if (desktopEl) desktopEl.textContent = formatRupee(rowTotal);
   }
 
   function recalcTotals() {
     var subtotal = 0;
     document.querySelectorAll('.cart-item-card').forEach(function (row) {
       var price = parseFloat(row.dataset.price) || 0;
-      var qty   = parseInt(row.querySelector('.qty-input').value, 10) || 1;
+      /* Use first input value as the qty source (both are synced at this point) */
+      var inp = row.querySelector('.qty-input');
+      var qty = inp ? (parseInt(inp.value, 10) || 1) : 1;
       subtotal += price * qty;
     });
 
-    var discount = CART_DATA.discount;   /* coupon discount is server-controlled */
-    var afterDis = subtotal - discount;
-    var shipping = (afterDis >= CART_DATA.freeThresh) ? 0 : CART_DATA.shipCharge;
-    var grand    = afterDis + shipping;
+    var discount  = CART_DATA.discount;
+    var afterDis  = subtotal - discount;
+    var shipping  = (afterDis >= CART_DATA.freeThresh) ? 0 : CART_DATA.shipCharge;
+    var grand     = afterDis + shipping;
 
-    /* Update DOM */
     setEl('summarySubtotal', formatRupee(subtotal));
 
     var shipEl = document.getElementById('summaryShipping');
@@ -156,24 +174,21 @@
     setEl('summaryTotal', formatRupee(grand));
 
     /* Free shipping progress bar */
-    var pct       = CART_DATA.freeThresh > 0 ? Math.min(100, Math.round(subtotal / CART_DATA.freeThresh * 100)) : 100;
-    var fillEl    = document.getElementById('shippingBarFill');
-    var msgEl     = document.getElementById('freeShipMsg');
-    var remainEl  = document.getElementById('freeShipRemain');
+    var pct     = CART_DATA.freeThresh > 0 ? Math.min(100, Math.round(subtotal / CART_DATA.freeThresh * 100)) : 100;
+    var fillEl  = document.getElementById('shippingBarFill');
+    var msgEl   = document.getElementById('freeShipMsg');
+    var remainEl = document.getElementById('freeShipRemain');
     if (fillEl) fillEl.style.width = pct + '%';
     if (shipping === 0) {
-      if (msgEl) {
-        msgEl.innerHTML = '<span class="text-success fw-600">🎉 You\'ve unlocked free shipping!</span>';
-      }
+      if (msgEl) msgEl.innerHTML = '<span class="text-success fw-600">🎉 You\'ve unlocked free shipping!</span>';
     } else {
       var remain = Math.max(0, CART_DATA.freeThresh - subtotal);
       if (remainEl) remainEl.textContent = formatRupee(remain);
     }
 
-    /* Save updated subtotal for coupon endpoint */
-    CART_DATA.subtotal  = subtotal;
-    CART_DATA.shipping  = shipping;
-    CART_DATA.grandTotal= grand;
+    CART_DATA.subtotal   = subtotal;
+    CART_DATA.shipping   = shipping;
+    CART_DATA.grandTotal = grand;
   }
 
   /* ════════════════════════════════════════════════════════════
@@ -198,13 +213,11 @@
         if (data.success) {
           CART_DATA.discount = data.discount;
 
-          /* Update discount line */
           var discLine = document.getElementById('discountLine');
           var discVal  = document.getElementById('summaryDiscount');
           if (discLine) discLine.style.display = '';
           if (discVal)  discVal.textContent = '−' + formatRupee(data.discount);
 
-          /* Show applied badge */
           var appliedEl = document.getElementById('couponApplied');
           var wrapEl    = document.getElementById('couponInputWrap');
           if (appliedEl) {
@@ -234,7 +247,6 @@
     });
   }
 
-  /* ── Coupon input: apply on Enter ── */
   var couponInput = document.getElementById('couponInput');
   if (couponInput) {
     couponInput.addEventListener('keydown', function (e) {
@@ -242,7 +254,6 @@
     });
   }
 
-  /* ── Coupon — remove ── */
   function bindRemoveCoupon() {
     var btn = document.getElementById('removeCouponBtn');
     if (!btn) return;
@@ -294,16 +305,16 @@
 
   function escHtml(s) {
     return String(s)
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  /* ── Run initial sync on page load ── */
+  /* ── Initial button state sync on page load ── */
   document.querySelectorAll('.cart-item-card').forEach(function (row) {
     var cartId = row.dataset.cartId;
     var stock  = parseInt(row.dataset.stock, 10) || 99;
-    var input  = row.querySelector('.qty-input[data-cart-id="' + cartId + '"]');
-    if (input) syncQtyButtons(row, parseInt(input.value, 10), stock);
+    var inp    = row.querySelector('.qty-input');
+    if (inp) syncQtyButtons(row, parseInt(inp.value, 10), stock);
   });
 
 })();

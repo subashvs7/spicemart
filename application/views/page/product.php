@@ -70,14 +70,14 @@
       </div>
 
       <?php if ($product['stock_qty'] > 0): ?>
-        <div class="mb-3">
+        <div class="mb-3" id="stockBadgeWrap">
           <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>In Stock</span>
           <?php if ($product['stock_qty'] < 20): ?>
             <span class="badge bg-warning text-dark ms-2">Only <?php echo $product['stock_qty']; ?> left!</span>
           <?php endif; ?>
         </div>
       <?php else: ?>
-        <div class="mb-3"><span class="badge bg-secondary">Out of Stock</span></div>
+        <div class="mb-3" id="stockBadgeWrap"><span class="badge bg-secondary">Out of Stock</span></div>
       <?php endif; ?>
 
       <!-- Variants -->
@@ -133,22 +133,23 @@
               </button>
 
             <?php else: ?>
-              <!-- Text / size button — always clickable; OOS is handled in JS -->
+              <!-- Text / size / weight button -->
               <button type="button"
-                      class="btn btn-sm btn-outline-secondary variant-btn<?php echo (int)$vo['stock_qty'] === 0 ? ' variant-oos' : ''; ?>"
+                      class="variant-text-btn variant-btn<?php echo (int)$vo['stock_qty'] === 0 ? ' variant-oos' : ''; ?>"
                       data-variant-id="<?php echo $vo['id']; ?>"
                       data-variant-type="<?php echo htmlspecialchars($vtype); ?>"
                       data-variant-value="<?php echo htmlspecialchars($vo['variant_value']); ?>"
                       data-price-mod="<?php echo $vo['price_modifier']; ?>"
                       data-stock="<?php echo (int)$vo['stock_qty']; ?>"
                       data-sku="<?php echo htmlspecialchars($vo['sku'] ?? ''); ?>"
+                      <?php echo (int)$vo['stock_qty'] === 0 ? 'disabled' : ''; ?>
                       title="<?php echo (int)$vo['stock_qty'] === 0 ? 'Out of stock' : htmlspecialchars($vo['variant_value'].$modLabel); ?>">
                 <?php echo htmlspecialchars($vo['variant_value']); ?>
                 <?php if ($modLabel): ?>
-                  <small class="opacity-75"><?php echo $modLabel; ?></small>
+                  <small style="font-size:.72rem;opacity:.75"><?php echo $modLabel; ?></small>
                 <?php endif; ?>
                 <?php if ((int)$vo['stock_qty'] === 0): ?>
-                  <small style="font-size:.65rem;display:block;line-height:1;opacity:.7">OOS</small>
+                  <small style="font-size:.62rem;display:block;line-height:1;opacity:.65">OOS</small>
                 <?php endif; ?>
               </button>
             <?php endif; ?>

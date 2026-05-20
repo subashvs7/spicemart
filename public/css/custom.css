@@ -136,6 +136,41 @@ a { text-decoration: none; transition: var(--transition); }
 .product-thumb { width: 70px; height: 70px; object-fit: cover; border-radius: 10px; cursor: pointer; border: 2px solid transparent; transition: var(--transition); }
 .product-thumb:hover, .product-thumb.active { border-color: var(--saffron); }
 
+/* ── Variant Text Buttons (size / weight / pack) ───────────── */
+.variant-text-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: .28rem .82rem;
+  font-size: .85rem;
+  font-weight: 500;
+  background: #fff;
+  border: 1.5px solid #aaa;
+  border-radius: 6px;
+  color: var(--dark-text);
+  cursor: pointer;
+  line-height: 1.35;
+  transition: border-color .18s ease, background .18s ease, box-shadow .18s ease, color .18s ease;
+}
+.variant-text-btn:hover:not(.variant-text-selected):not(.variant-oos) {
+  border-color: var(--saffron);
+  color: var(--saffron);
+  background: rgba(123,66,40,.06);
+}
+.variant-text-btn.variant-text-selected {
+  background: var(--saffron);
+  border-color: var(--saffron);
+  color: #fff !important;
+  box-shadow: 0 0 0 3px rgba(123,66,40,.28);
+}
+.variant-text-btn.variant-oos {
+  opacity: .45;
+  text-decoration: line-through;
+  text-decoration-color: rgba(0,0,0,.4);
+  cursor: not-allowed;
+}
+
 /* ── Color Swatch Buttons (product variants) ───────────────── */
 .color-swatch-btn {
   display: inline-flex;
