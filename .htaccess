@@ -1,12 +1,14 @@
+Options +FollowSymLinks
 DirectoryIndex index.php
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Allow real files and directories to be served directly
+    # Allow direct access to existing files and folders
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
 
-    # Route everything else through CodeIgniter's front controller
-    RewriteRule ^(.*)$ index.php/$1 [L,QSA]
+    # Send everything to CI front controller.
+    # No RewriteBase needed — CI reads full REQUEST_URI and strips the base path itself.
+    RewriteRule ^ index.php [L,QSA]
 </IfModule>

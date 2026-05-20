@@ -1,9 +1,14 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-// Auto-detect base URL so the app works at root, subdirectory, local, or live
+// Auto-detect base URL — works at root, in a subdirectory, locally, and behind Hostinger's proxy
 if (!empty($_SERVER['HTTP_HOST'])) {
-    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    // Detect HTTPS: covers direct SSL, Hostinger/CDN proxies, and port 443
+    $https = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'
+          || !empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https'
+          || !empty($_SERVER['HTTP_X_FORWARDED_SSL'])   && $_SERVER['HTTP_X_FORWARDED_SSL']   === 'on'
+          || isset($_SERVER['SERVER_PORT'])              && (int)$_SERVER['SERVER_PORT']        === 443;
+    $protocol = $https ? 'https' : 'http';
     $host     = $_SERVER['HTTP_HOST'];
     $dir      = dirname($_SERVER['SCRIPT_NAME'] ?? '/index.php');
     $base     = rtrim(str_replace('\\', '/', $dir), '/') . '/';

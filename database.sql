@@ -1,28 +1,27 @@
 -- ============================================================
---  SpiceMart – Full-Featured E-Commerce Database v2
---  Passwords: plain text (no hashing)
---  mysql -u root -p < database.sql
+--  myeoncasuals – Full E-Commerce Database
+--  No foreign key constraints
+--  mysql -u root -p spicemart < database.sql
 -- ============================================================
 
-SET FOREIGN_KEY_CHECKS = 0;
 DROP DATABASE IF EXISTS spicemart;
 CREATE DATABASE spicemart CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE spicemart;
 
 -- ── users ────────────────────────────────────────────────────
 CREATE TABLE users (
-    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    name            VARCHAR(100) NOT NULL,
-    email           VARCHAR(150) NOT NULL UNIQUE,
-    phone           VARCHAR(20)  DEFAULT NULL,
-    password        VARCHAR(255) NOT NULL,
-    address         TEXT         DEFAULT NULL,
-    role            ENUM('admin','staff','customer') NOT NULL DEFAULT 'customer',
-    permissions     VARCHAR(500) DEFAULT NULL,
-    is_blocked      TINYINT(1)   DEFAULT 0,
-    reset_token     VARCHAR(64)  DEFAULT NULL,
-    reset_expires   DATETIME     DEFAULT NULL,
-    created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+    id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name          VARCHAR(100) NOT NULL,
+    email         VARCHAR(150) NOT NULL UNIQUE,
+    phone         VARCHAR(20)  DEFAULT NULL,
+    password      VARCHAR(255) NOT NULL,
+    address       TEXT         DEFAULT NULL,
+    role          ENUM('admin','staff','customer') NOT NULL DEFAULT 'customer',
+    permissions   VARCHAR(500) DEFAULT NULL,
+    is_blocked    TINYINT(1)   DEFAULT 0,
+    reset_token   VARCHAR(64)  DEFAULT NULL,
+    reset_expires DATETIME     DEFAULT NULL,
+    created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
 -- ── brands ───────────────────────────────────────────────────
@@ -35,39 +34,36 @@ CREATE TABLE brands (
     created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
--- ── categories (with parent_id for sub-categories) ───────────
+-- ── categories ───────────────────────────────────────────────
 CREATE TABLE categories (
     id        INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     parent_id INT UNSIGNED DEFAULT NULL,
     name      VARCHAR(100) NOT NULL,
     slug      VARCHAR(120) NOT NULL UNIQUE,
     image     VARCHAR(255) DEFAULT NULL,
-    status    TINYINT(1)   DEFAULT 1,
-    FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE SET NULL
+    status    TINYINT(1)   DEFAULT 1
 ) ENGINE=InnoDB;
 
 -- ── products ─────────────────────────────────────────────────
 CREATE TABLE products (
-    id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    category_id  INT UNSIGNED  NOT NULL,
-    brand_id     INT UNSIGNED  DEFAULT NULL,
-    name         VARCHAR(150)  NOT NULL,
-    slug         VARCHAR(160)  NOT NULL UNIQUE,
-    description  TEXT          DEFAULT NULL,
-    price        DECIMAL(10,2) NOT NULL,
-    offer_price  DECIMAL(10,2) DEFAULT NULL,
-    gst          DECIMAL(5,2)  DEFAULT 0.00,
-    stock_qty    INT UNSIGNED  NOT NULL DEFAULT 0,
-    weight       VARCHAR(50)   DEFAULT NULL,
-    image        VARCHAR(255)  DEFAULT NULL,
-    tags         VARCHAR(300)  DEFAULT NULL,
-    meta_title   VARCHAR(200)  DEFAULT NULL,
-    meta_desc    TEXT          DEFAULT NULL,
-    is_featured  TINYINT(1)    DEFAULT 0,
-    status       TINYINT(1)    NOT NULL DEFAULT 1,
-    created_at   TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
-    FOREIGN KEY (brand_id)    REFERENCES brands(id)     ON DELETE SET NULL
+    id          INT UNSIGNED  AUTO_INCREMENT PRIMARY KEY,
+    category_id INT UNSIGNED  NOT NULL,
+    brand_id    INT UNSIGNED  DEFAULT NULL,
+    name        VARCHAR(150)  NOT NULL,
+    slug        VARCHAR(160)  NOT NULL UNIQUE,
+    description TEXT          DEFAULT NULL,
+    price       DECIMAL(10,2) NOT NULL,
+    offer_price DECIMAL(10,2) DEFAULT NULL,
+    gst         DECIMAL(5,2)  DEFAULT 0.00,
+    stock_qty   INT           NOT NULL DEFAULT 0,
+    weight      VARCHAR(50)   DEFAULT NULL,
+    image       VARCHAR(255)  DEFAULT NULL,
+    tags        VARCHAR(300)  DEFAULT NULL,
+    meta_title  VARCHAR(200)  DEFAULT NULL,
+    meta_desc   TEXT          DEFAULT NULL,
+    is_featured TINYINT(1)    DEFAULT 0,
+    status      TINYINT(1)    NOT NULL DEFAULT 1,
+    created_at  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
 -- ── product_images ───────────────────────────────────────────
@@ -76,8 +72,7 @@ CREATE TABLE product_images (
     product_id INT UNSIGNED NOT NULL,
     image      VARCHAR(255) NOT NULL,
     is_primary TINYINT(1)   DEFAULT 0,
-    sort_order INT          DEFAULT 0,
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+    sort_order INT          DEFAULT 0
 ) ENGINE=InnoDB;
 
 -- ── product_variants ─────────────────────────────────────────
@@ -89,8 +84,7 @@ CREATE TABLE product_variants (
     price_modifier DECIMAL(10,2) DEFAULT 0.00,
     stock_qty      INT UNSIGNED  DEFAULT 0,
     sku            VARCHAR(100)  DEFAULT NULL,
-    color_hex      VARCHAR(10)   DEFAULT NULL,
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+    color_hex      VARCHAR(10)   DEFAULT NULL
 ) ENGINE=InnoDB;
 
 -- ── orders ───────────────────────────────────────────────────
@@ -109,8 +103,7 @@ CREATE TABLE orders (
     tracking_no      VARCHAR(100)  DEFAULT NULL,
     courier_name     VARCHAR(100)  DEFAULT NULL,
     notes            TEXT          DEFAULT NULL,
-    created_at       TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    created_at       TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
 -- ── order_items ──────────────────────────────────────────────
@@ -121,9 +114,7 @@ CREATE TABLE order_items (
     product_name  VARCHAR(150)  NOT NULL,
     variant_label VARCHAR(200)  DEFAULT NULL,
     quantity      INT UNSIGNED  NOT NULL DEFAULT 1,
-    unit_price    DECIMAL(10,2) NOT NULL,
-    FOREIGN KEY (order_id)   REFERENCES orders(id)   ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+    unit_price    DECIMAL(10,2) NOT NULL
 ) ENGINE=InnoDB;
 
 -- ── cart ─────────────────────────────────────────────────────
@@ -134,9 +125,7 @@ CREATE TABLE cart (
     variant_id    INT UNSIGNED DEFAULT NULL,
     variant_label VARCHAR(200) DEFAULT NULL,
     quantity      INT UNSIGNED NOT NULL DEFAULT 1,
-    UNIQUE KEY uq_cart_item (user_id, product_id, variant_id),
-    FOREIGN KEY (user_id)    REFERENCES users(id)    ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+    UNIQUE KEY uq_cart_item (user_id, product_id, variant_id)
 ) ENGINE=InnoDB;
 
 -- ── wishlist ─────────────────────────────────────────────────
@@ -145,9 +134,7 @@ CREATE TABLE wishlist (
     user_id    INT UNSIGNED NOT NULL,
     product_id INT UNSIGNED NOT NULL,
     created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_wishlist (user_id, product_id),
-    FOREIGN KEY (user_id)    REFERENCES users(id)    ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+    UNIQUE KEY uq_wishlist (user_id, product_id)
 ) ENGINE=InnoDB;
 
 -- ── addresses ────────────────────────────────────────────────
@@ -161,8 +148,7 @@ CREATE TABLE addresses (
     city         VARCHAR(100) NOT NULL,
     state        VARCHAR(100) NOT NULL,
     pincode      VARCHAR(10)  NOT NULL,
-    is_default   TINYINT(1)   DEFAULT 0,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    is_default   TINYINT(1)   DEFAULT 0
 ) ENGINE=InnoDB;
 
 -- ── reviews ──────────────────────────────────────────────────
@@ -173,9 +159,7 @@ CREATE TABLE reviews (
     rating     TINYINT(1)   NOT NULL,
     comment    TEXT         DEFAULT NULL,
     created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_review (product_id, user_id),
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id)    REFERENCES users(id)    ON DELETE CASCADE
+    UNIQUE KEY uq_review (product_id, user_id)
 ) ENGINE=InnoDB;
 
 -- ── coupons ──────────────────────────────────────────────────
@@ -202,9 +186,7 @@ CREATE TABLE returns (
     reason     TEXT         NOT NULL,
     status     ENUM('pending','approved','rejected') DEFAULT 'pending',
     admin_note TEXT         DEFAULT NULL,
-    created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id)  REFERENCES users(id)  ON DELETE CASCADE
+    created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
 -- ── banners ──────────────────────────────────────────────────
@@ -244,6 +226,18 @@ CREATE TABLE contacts (
     created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
+-- ── otp_codes ────────────────────────────────────────────────
+CREATE TABLE otp_codes (
+    id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    email      VARCHAR(150) NOT NULL,
+    otp        VARCHAR(6)   NOT NULL,
+    token      VARCHAR(64)  NOT NULL,
+    type       ENUM('login','reset') DEFAULT 'reset',
+    expires_at DATETIME     NOT NULL,
+    is_used    TINYINT(1)   DEFAULT 0,
+    created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
 -- ── shipping_settings ────────────────────────────────────────
 CREATE TABLE shipping_settings (
     id        INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -259,137 +253,305 @@ CREATE TABLE site_settings (
     key_group VARCHAR(50)  DEFAULT 'general'
 ) ENGINE=InnoDB;
 
--- ── otp_codes ────────────────────────────────────────────────
-CREATE TABLE otp_codes (
-    id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    email      VARCHAR(150) NOT NULL,
-    otp        VARCHAR(6)   NOT NULL,
-    token      VARCHAR(64)  NOT NULL,
-    type       ENUM('login','reset') DEFAULT 'reset',
-    expires_at DATETIME     NOT NULL,
-    is_used    TINYINT(1)   DEFAULT 0,
-    created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+-- ── why_choose_us ────────────────────────────────────────────
+CREATE TABLE why_choose_us (
+    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    icon        VARCHAR(10)  DEFAULT '🌿',
+    title       VARCHAR(150) NOT NULL,
+    description TEXT         NOT NULL,
+    sort_order  INT          DEFAULT 0,
+    status      TINYINT(1)   DEFAULT 1
 ) ENGINE=InnoDB;
 
-SET FOREIGN_KEY_CHECKS = 1;
-
--- ── Migration: add color_hex to existing databases ───────────
--- Run this once if you already have the spicemart DB:
--- ALTER TABLE product_variants ADD COLUMN color_hex VARCHAR(10) DEFAULT NULL AFTER sku;
-
--- ── Migration: add site_settings table ───────────────────────
--- CREATE TABLE site_settings (id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, key_name VARCHAR(100) NOT NULL UNIQUE, key_value TEXT DEFAULT NULL, key_group VARCHAR(50) DEFAULT 'general') ENGINE=InnoDB;
+-- ── testimonials ─────────────────────────────────────────────
+CREATE TABLE testimonials (
+    id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    customer_name VARCHAR(100) NOT NULL,
+    rating        TINYINT(1)   NOT NULL DEFAULT 5,
+    quote         TEXT         NOT NULL,
+    sort_order    INT          DEFAULT 0,
+    status        TINYINT(1)   DEFAULT 1
+) ENGINE=InnoDB;
 
 -- ============================================================
 --  SEED DATA
 -- ============================================================
 
--- Users (plain text passwords)
+-- Users
 INSERT INTO users (name, email, phone, password, role) VALUES
-('Admin User',  'admin@spice.com',    '9876543210', 'Admin@123', 'admin'),
-('Priya Sharma','priya@example.com',  '9123456780', 'Test@123',  'customer');
+('Admin User',   'admin@myeoncasuals.com', '9876543210', 'Admin@123', 'admin'),
+('Priya Sharma', 'priya@example.com',      '9123456780', 'Test@123',  'customer');
 UPDATE users SET address = '12, Gandhi Nagar, Chennai, Tamil Nadu - 600001' WHERE id = 2;
 
 -- Brands
 INSERT INTO brands (name, slug, status) VALUES
-('SpiceMart Organic','spicemart-organic',1),
-('FarmFresh',        'farmfresh',        1),
-('Pure Harvest',     'pure-harvest',     1);
+('myeoncasuals Original', 'myeoncasuals-original', 1),
+('FarmFresh',             'farmfresh',              1),
+('Pure Harvest',          'pure-harvest',           1);
 
 -- Categories (main)
 INSERT INTO categories (parent_id, name, slug, status) VALUES
-(NULL,'Whole Spices',  'whole-spices',  1),
-(NULL,'Ground Masala', 'ground-masala', 1),
-(NULL,'Blended Masala','blended-masala',1),
-(NULL,'Seeds',         'seeds',         1),
-(NULL,'Dry Fruits',    'dry-fruits',    1);
+(NULL, 'Men',        'men',        1),
+(NULL, 'Women',      'women',      1),
+(NULL, 'Kids',       'kids',       1),
+(NULL, 'Accessories','accessories',1),
+(NULL, 'Footwear',   'footwear',   1);
 
 -- Sub-categories
 INSERT INTO categories (parent_id, name, slug, status) VALUES
-(1,'Kerala Spices',      'kerala-spices',       1),
-(1,'Exotic Spices',      'exotic-spices',        1),
-(2,'Single Spice Powder','single-spice-powder',  1),
-(3,'South Indian Masala','south-indian-masala',  1),
-(3,'North Indian Masala','north-indian-masala',  1);
+(1, 'T-Shirts',   't-shirts',   1),
+(1, 'Shirts',     'shirts',     1),
+(2, 'Kurtas',     'kurtas',     1),
+(2, 'Dresses',    'dresses',    1),
+(4, 'Bags',       'bags',       1);
 
 -- Products
-INSERT INTO products (category_id,brand_id,name,slug,description,price,offer_price,gst,stock_qty,weight,image,is_featured,status) VALUES
-(1,1,'Premium Cardamom','premium-cardamom','Hand-picked green cardamom from Kerala. Intensely aromatic.',220.00,199.00,5.00,150,'100g','cardamom.jpg',1,1),
-(1,2,'Ceylon Cinnamon Sticks','ceylon-cinnamon-sticks','True Ceylon cinnamon, delicate and sweet.',180.00,NULL,5.00,200,'200g','cinnamon.jpg',0,1),
-(1,1,'Star Anise','star-anise','Whole star anise with bold liquorice fragrance.',150.00,135.00,5.00,120,'100g','staranise.jpg',0,1),
-(2,1,'Pure Turmeric Powder','pure-turmeric-powder','Stone-ground Erode turmeric 3.5%+ curcumin.',95.00,85.00,5.00,300,'250g','turmeric.jpg',1,1),
-(2,2,'Kashmiri Red Chilli Powder','kashmiri-red-chilli-powder','Mild heat, deep crimson colour.',130.00,NULL,5.00,250,'200g','kashmiri.jpg',0,1),
-(2,3,'Coriander Powder','coriander-powder','Freshly ground, citrusy and nutty.',80.00,72.00,5.00,280,'250g','coriander.jpg',0,1),
-(3,1,'Garam Masala Premium','garam-masala-premium','Signature blend of 12 whole spices.',175.00,155.00,12.00,180,'100g','garam.jpg',1,1),
-(3,2,'Chicken Masala','chicken-masala','Restaurant-style chicken masala blend.',160.00,NULL,12.00,160,'100g','chicken_masala.jpg',0,1),
-(3,1,'Biryani Masala','biryani-masala','Authentic biryani spice blend.',190.00,170.00,12.00,140,'100g','biryani.jpg',1,1),
-(3,3,'Sambar Powder','sambar-powder','Traditional South Indian sambar powder.',120.00,NULL,12.00,200,'200g','sambar.jpg',0,1),
-(4,1,'Black Mustard Seeds','black-mustard-seeds','Essential for South Indian tempering.',65.00,59.00,5.00,350,'250g','mustard.jpg',0,1),
-(4,2,'Cumin Seeds (Jeera)','cumin-seeds-jeera','Rajasthani cumin, intense warm aroma.',110.00,NULL,5.00,300,'250g','cumin.jpg',1,1),
-(4,3,'Fenugreek Seeds','fenugreek-seeds','Slightly bitter, maple-like aroma.',75.00,NULL,5.00,220,'200g','fenugreek.jpg',0,1),
-(5,1,'Kashmiri Walnuts','kashmiri-walnuts','Premium paper-shell walnuts from Kashmir.',650.00,599.00,18.00,80,'500g','walnuts.jpg',1,1),
-(5,2,'Seedless Raisins','seedless-raisins','Juicy plump raisins from Nashik.',220.00,NULL,5.00,150,'500g','raisins.jpg',0,1);
+INSERT INTO products (category_id, brand_id, name, slug, description, price, offer_price, gst, stock_qty, weight, image, is_featured, status) VALUES
+(6, 1, 'Classic Casual Tee',        'classic-casual-tee',        'Comfortable 100% cotton casual t-shirt for everyday wear.',        599.00,  499.00,  5.00, 150, NULL, NULL, 1, 1),
+(6, 2, 'Premium Polo Tee',          'premium-polo-tee',          'Stylish polo t-shirt with ribbed collar and cuffs.',               799.00,  NULL,    5.00, 120, NULL, NULL, 0, 1),
+(7, 1, 'Oxford Button-Down Shirt',  'oxford-button-down-shirt',  'Classic Oxford weave shirt for smart casual occasions.',          1299.00, 1099.00, 5.00, 80,  NULL, NULL, 1, 1),
+(7, 3, 'Linen Summer Shirt',        'linen-summer-shirt',        'Breathable linen shirt perfect for warm weather.',                 999.00,  NULL,    5.00, 100, NULL, NULL, 0, 1),
+(8, 1, 'Straight Fit Kurta',        'straight-fit-kurta',        'Elegant cotton kurta for festive and daily wear.',                 849.00,  749.00,  5.00, 90,  NULL, NULL, 1, 1),
+(8, 2, 'Anarkali Kurta',            'anarkali-kurta',            'Beautiful anarkali style kurta with floral embroidery.',          1199.00, NULL,    5.00, 60,  NULL, NULL, 0, 1),
+(9, 1, 'Floral Midi Dress',         'floral-midi-dress',         'Flowy midi dress with vibrant floral print.',                     1099.00, 949.00,  5.00, 70,  NULL, NULL, 1, 1),
+(9, 3, 'Wrap Maxi Dress',           'wrap-maxi-dress',           'Elegant wrap maxi dress for evening occasions.',                  1499.00, NULL,    5.00, 45,  NULL, NULL, 0, 1),
+(10, 1,'Leather Tote Bag',          'leather-tote-bag',          'Premium faux leather tote bag with multiple compartments.',       1899.00, 1699.00, 18.00,50,  NULL, NULL, 1, 1),
+(10, 2,'Canvas Crossbody Bag',      'canvas-crossbody-bag',      'Lightweight canvas crossbody bag for everyday use.',               699.00,  NULL,    18.00,80,  NULL, NULL, 0, 1);
 
--- Product Variants (size variants for first few products)
-INSERT INTO product_variants (product_id,variant_type,variant_value,price_modifier,stock_qty) VALUES
-(4,'size','100g', -45.00,100),
-(4,'size','250g',  0.00, 300),
-(4,'size','500g',  85.00, 80),
-(7,'size','50g',  -80.00,100),
-(7,'size','100g',  0.00, 180),
-(7,'size','200g',  155.00,60);
+-- Product Variants (size, color, weight for all 10 products)
+INSERT INTO product_variants (product_id, variant_type, variant_value, price_modifier, stock_qty, color_hex) VALUES
+
+-- ── Product 1: Classic Casual Tee ────────────────────────────
+-- size
+(1, 'size',   'S',                0.00,  35, NULL),
+(1, 'size',   'M',                0.00,  50, NULL),
+(1, 'size',   'L',                0.00,  45, NULL),
+(1, 'size',   'XL',               0.00,  25, NULL),
+(1, 'size',   'XXL',             50.00,  15, NULL),
+-- color
+(1, 'color',  'White',            0.00,  40, '#FFFFFF'),
+(1, 'color',  'Black',            0.00,  40, '#1A1A1A'),
+(1, 'color',  'Navy Blue',        0.00,  35, '#1F3A6E'),
+(1, 'color',  'Charcoal Grey',    0.00,  30, '#4A4A4A'),
+(1, 'color',  'Olive Green',      0.00,  20, '#6B7645'),
+-- weight (fabric GSM)
+(1, 'weight', '180 GSM (Light)', -30.00, 45, NULL),
+(1, 'weight', '220 GSM (Regular)',0.00,  80, NULL),
+(1, 'weight', '280 GSM (Heavy)', 40.00,  25, NULL),
+
+-- ── Product 2: Premium Polo Tee ──────────────────────────────
+-- size
+(2, 'size',   'S',                0.00,  25, NULL),
+(2, 'size',   'M',                0.00,  40, NULL),
+(2, 'size',   'L',                0.00,  35, NULL),
+(2, 'size',   'XL',               0.00,  20, NULL),
+(2, 'size',   'XXL',             50.00,  10, NULL),
+-- color
+(2, 'color',  'White',            0.00,  30, '#FFFFFF'),
+(2, 'color',  'Black',            0.00,  30, '#1A1A1A'),
+(2, 'color',  'Navy Blue',        0.00,  25, '#1F3A6E'),
+(2, 'color',  'Burgundy',         0.00,  20, '#7B1D1D'),
+(2, 'color',  'Sky Blue',         0.00,  15, '#87CEEB'),
+-- weight (fabric GSM)
+(2, 'weight', '200 GSM (Light)', -20.00, 40, NULL),
+(2, 'weight', '240 GSM (Regular)',0.00,  60, NULL),
+(2, 'weight', '300 GSM (Heavy)', 50.00,  20, NULL),
+
+-- ── Product 3: Oxford Button-Down Shirt ──────────────────────
+-- size
+(3, 'size',   'S',                0.00,  20, NULL),
+(3, 'size',   'M',                0.00,  30, NULL),
+(3, 'size',   'L',                0.00,  20, NULL),
+(3, 'size',   'XL',               0.00,  10, NULL),
+(3, 'size',   'XXL',             80.00,   5, NULL),
+-- color
+(3, 'color',  'White',            0.00,  25, '#FFFFFF'),
+(3, 'color',  'Light Blue',       0.00,  20, '#AEC6CF'),
+(3, 'color',  'Pale Pink',        0.00,  15, '#F4C2C2'),
+(3, 'color',  'Mint Green',       0.00,  10, '#98D8C8'),
+-- weight (fabric GSM)
+(3, 'weight', '120 GSM (Light)', -50.00, 30, NULL),
+(3, 'weight', '160 GSM (Regular)',0.00,  50, NULL),
+
+-- ── Product 4: Linen Summer Shirt ────────────────────────────
+-- size
+(4, 'size',   'S',                0.00,  25, NULL),
+(4, 'size',   'M',                0.00,  35, NULL),
+(4, 'size',   'L',                0.00,  25, NULL),
+(4, 'size',   'XL',               0.00,  15, NULL),
+-- color
+(4, 'color',  'White',            0.00,  30, '#FFFFFF'),
+(4, 'color',  'Beige',            0.00,  25, '#F5F5DC'),
+(4, 'color',  'Sage Green',       0.00,  20, '#B2AC88'),
+(4, 'color',  'Sky Blue',         0.00,  25, '#87CEEB'),
+-- weight (fabric GSM)
+(4, 'weight', '100 GSM (Sheer)', -40.00, 30, NULL),
+(4, 'weight', '140 GSM (Regular)',0.00,  60, NULL),
+(4, 'weight', '180 GSM (Heavy)', 30.00,  10, NULL),
+
+-- ── Product 5: Straight Fit Kurta ────────────────────────────
+-- size
+(5, 'size',   'XS',               0.00,  15, NULL),
+(5, 'size',   'S',                0.00,  25, NULL),
+(5, 'size',   'M',                0.00,  30, NULL),
+(5, 'size',   'L',                0.00,  20, NULL),
+(5, 'size',   'XL',               0.00,  10, NULL),
+(5, 'size',   'XXL',             50.00,   5, NULL),
+-- color
+(5, 'color',  'Ivory',            0.00,  25, '#FFFFF0'),
+(5, 'color',  'Mint Green',       0.00,  20, '#98D8C8'),
+(5, 'color',  'Dusty Rose',       0.00,  20, '#DCAE96'),
+(5, 'color',  'Navy Blue',        0.00,  15, '#1F3A6E'),
+(5, 'color',  'Marigold Yellow',  0.00,  10, '#FBCE2C'),
+-- weight (fabric GSM)
+(5, 'weight', '150 GSM (Light)', -30.00, 35, NULL),
+(5, 'weight', '200 GSM (Regular)',0.00,  55, NULL),
+
+-- ── Product 6: Anarkali Kurta ────────────────────────────────
+-- size
+(6, 'size',   'XS',               0.00,  10, NULL),
+(6, 'size',   'S',                0.00,  15, NULL),
+(6, 'size',   'M',                0.00,  20, NULL),
+(6, 'size',   'L',                0.00,  10, NULL),
+(6, 'size',   'XL',               0.00,   5, NULL),
+-- color
+(6, 'color',  'Royal Blue',       0.00,  15, '#4169E1'),
+(6, 'color',  'Emerald Green',    0.00,  12, '#2E8B57'),
+(6, 'color',  'Maroon',           0.00,  12, '#800000'),
+(6, 'color',  'Peach',            0.00,  10, '#FFCBA4'),
+(6, 'color',  'Purple',           0.00,   8, '#7B2D8B'),
+-- weight (fabric GSM)
+(6, 'weight', '180 GSM (Light)', -50.00, 20, NULL),
+(6, 'weight', '240 GSM (Regular)',0.00,  40, NULL),
+
+-- ── Product 7: Floral Midi Dress ─────────────────────────────
+-- size
+(7, 'size',   'XS',               0.00,  12, NULL),
+(7, 'size',   'S',                0.00,  20, NULL),
+(7, 'size',   'M',                0.00,  22, NULL),
+(7, 'size',   'L',                0.00,  10, NULL),
+(7, 'size',   'XL',               0.00,   6, NULL),
+-- color
+(7, 'color',  'Pink Floral',      0.00,  20, '#F4A7B9'),
+(7, 'color',  'Yellow Floral',    0.00,  18, '#F5DEB3'),
+(7, 'color',  'Blue Floral',      0.00,  15, '#B0C4DE'),
+(7, 'color',  'White Floral',     0.00,  17, '#FAFAFA'),
+-- weight (fabric GSM)
+(7, 'weight', '120 GSM (Flowy)', -30.00, 35, NULL),
+(7, 'weight', '160 GSM (Regular)',0.00,  35, NULL),
+
+-- ── Product 8: Wrap Maxi Dress ───────────────────────────────
+-- size
+(8, 'size',   'XS',               0.00,   8, NULL),
+(8, 'size',   'S',                0.00,  12, NULL),
+(8, 'size',   'M',                0.00,  15, NULL),
+(8, 'size',   'L',                0.00,   8, NULL),
+(8, 'size',   'XL',               0.00,   5, NULL),
+-- color
+(8, 'color',  'Burgundy',         0.00,  12, '#800020'),
+(8, 'color',  'Forest Green',     0.00,  10, '#228B22'),
+(8, 'color',  'Midnight Blue',    0.00,  10, '#191970'),
+(8, 'color',  'Terracotta',       0.00,   8, '#C0673A'),
+(8, 'color',  'Blush Pink',       0.00,   5, '#FFB6C1'),
+-- weight (fabric GSM)
+(8, 'weight', '140 GSM (Flowy)', -50.00, 20, NULL),
+(8, 'weight', '190 GSM (Regular)',0.00,  25, NULL),
+
+-- ── Product 9: Leather Tote Bag ──────────────────────────────
+-- color
+(9, 'color',  'Black',            0.00,  15, '#1A1A1A'),
+(9, 'color',  'Tan Brown',        0.00,  12, '#C4874A'),
+(9, 'color',  'Nude Beige',       0.00,  10, '#E8C4A0'),
+(9, 'color',  'Burgundy',         0.00,   8, '#800020'),
+-- size (bag capacity)
+(9, 'size',   'Small (10L)',    -200.00, 15, NULL),
+(9, 'size',   'Medium (15L)',     0.00,  20, NULL),
+(9, 'size',   'Large (20L)',    200.00,  15, NULL),
+-- weight (bag weight)
+(9, 'weight', '400g (Light)',   -100.00, 15, NULL),
+(9, 'weight', '600g (Standard)',  0.00,  25, NULL),
+(9, 'weight', '800g (Heavy)',   100.00,  10, NULL),
+
+-- ── Product 10: Canvas Crossbody Bag ─────────────────────────
+-- color
+(10,'color',  'Black',            0.00,  20, '#1A1A1A'),
+(10,'color',  'Navy Blue',        0.00,  18, '#1F3A6E'),
+(10,'color',  'Olive Green',      0.00,  15, '#6B7645'),
+(10,'color',  'Cream',            0.00,  12, '#FAF0E8'),
+(10,'color',  'Rust Orange',      0.00,  10, '#B85C38'),
+-- size (bag capacity)
+(10,'size',   'Small (6L)',      -100.00,20, NULL),
+(10,'size',   'Medium (10L)',      0.00, 35, NULL),
+-- weight (bag weight)
+(10,'weight', '250g (Light)',    -50.00, 30, NULL),
+(10,'weight', '350g (Standard)',   0.00, 40, NULL),
+(10,'weight', '450g (Padded)',   50.00,  10, NULL);
 
 -- Coupons
-INSERT INTO coupons (code,type,value,min_order,max_discount,uses_limit,expires_at,status) VALUES
-('WELCOME10','percent',10.00, 200.00, 50.00,100,'2027-12-31',1),
-('FLAT50',   'flat',   50.00, 500.00, 50.00, 50,'2027-12-31',1),
-('SPICE20',  'percent',20.00,1000.00,200.00, 25,'2027-06-30',1);
+INSERT INTO coupons (code, type, value, min_order, max_discount, uses_limit, expires_at, status) VALUES
+('WELCOME10', 'percent', 10.00,  500.00,  100.00, 100, '2027-12-31', 1),
+('FLAT50',    'flat',    50.00,  999.00,   50.00,  50, '2027-12-31', 1),
+('STYLE20',   'percent', 20.00, 1500.00,  300.00,  25, '2027-06-30', 1);
 
 -- CMS Pages
-INSERT INTO cms_pages (slug,title,content,status) VALUES
-('about','About Us','<h4>About SpiceMart</h4><p>SpiceMart was founded with a passion for bringing the finest farm-fresh spices directly to your kitchen. We source directly from farmers across India — Kerala, Kashmir, Rajasthan — ensuring 100% purity with no additives or preservatives.</p>',1),
-('terms','Terms & Conditions','<h4>Terms & Conditions</h4><p>By using SpiceMart you agree to these terms. Products are sold for personal use only. We reserve the right to modify prices and availability at any time. All orders are subject to confirmation.</p>',1),
-('privacy','Privacy Policy','<h4>Privacy Policy</h4><p>SpiceMart collects personal information such as name, email, and address for order processing only. We do not share your data with third parties. Payment details are processed securely.</p>',1),
-('return-policy','Return Policy','<h4>Return Policy</h4><p>We accept returns within 7 days of delivery for damaged or incorrect products. Items must be unused and in original packaging. Refunds are processed within 5-7 business days.</p>',1);
+INSERT INTO cms_pages (slug, title, content, status) VALUES
+('about',         'About Us',           '<h4>About myeoncasuals</h4><p>myeoncasuals was founded with a passion for bringing contemporary fashion directly to you. We source the finest fabrics and designs, ensuring quality with every stitch. Our collection blends comfort with style for everyday wear.</p>', 1),
+('terms',         'Terms & Conditions', '<h4>Terms &amp; Conditions</h4><p>By using myeoncasuals you agree to these terms. Products are sold for personal use only. We reserve the right to modify prices and availability at any time. All orders are subject to confirmation.</p>',             1),
+('privacy',       'Privacy Policy',     '<h4>Privacy Policy</h4><p>myeoncasuals collects personal information such as name, email, and address for order processing only. We do not share your data with third parties. Payment details are processed securely.</p>',                            1),
+('return-policy', 'Return Policy',      '<h4>Return Policy</h4><p>We accept returns within 7 days of delivery for damaged or incorrect products. Items must be unworn and in original packaging. Refunds are processed within 5-7 business days.</p>',                                         1);
 
 -- Site Settings
 INSERT INTO site_settings (key_name, key_value, key_group) VALUES
-('site_name',        'SpiceMart',                                                                         'general'),
-('site_tagline',     'Pure & Natural',                                                                    'general'),
-('site_logo',        NULL,                                                                                'general'),
-('top_strip_text',   '🚚 Free shipping on orders above ₹499 | 100% Pure & Natural | Cash on Delivery available', 'general'),
-('contact_phone',    '+91 98765 43210',                                                                   'contact'),
-('contact_email',    'hello@spicemart.in',                                                                'contact'),
-('contact_address',  'Koyambedu Market, Chennai – 600092',                                               'contact'),
-('footer_about',     'Bringing the finest farm-fresh spices and masalas directly to your kitchen. 100% pure, no additives, no compromises.', 'footer'),
-('footer_copyright', 'SpiceMart. All rights reserved.',                                                  'footer'),
-('social_facebook',  '#',                                                                                 'social'),
-('social_instagram', '#',                                                                                 'social'),
-('social_youtube',   '#',                                                                                 'social'),
-('social_whatsapp',  '#',                                                                                 'social'),
-('social_twitter',   '#',                                                                                 'social'),
-('meta_title',       'SpiceMart – Pure Spices & Masala',                                                 'seo'),
-('meta_desc',        'Buy premium quality spices, masalas and dry fruits online. 100% pure, farm fresh, no additives.', 'seo'),
-('google_analytics', '',                                                                                  'seo');
+('site_name',        'myeoncasuals',                                                                              'general'),
+('site_tagline',     'Style That Speaks',                                                                         'general'),
+('site_logo',        NULL,                                                                                        'general'),
+('top_strip_text',   '🚚 Free shipping on orders above ₹499 | Easy Returns | Cash on Delivery available',        'general'),
+('contact_phone',    '+91 98765 43210',                                                                           'contact'),
+('contact_email',    'hello@myeoncasuals.com',                                                                    'contact'),
+('contact_address',  'T. Nagar, Chennai – 600017',                                                               'contact'),
+('footer_about',     'Bringing contemporary fashion to your doorstep. Comfort meets style in every piece we craft.', 'footer'),
+('footer_copyright', 'myeoncasuals. All rights reserved.',                                                        'footer'),
+('social_facebook',  '#',                                                                                         'social'),
+('social_instagram', '#',                                                                                         'social'),
+('social_youtube',   '#',                                                                                         'social'),
+('social_whatsapp',  '#',                                                                                         'social'),
+('social_twitter',   '#',                                                                                         'social'),
+('meta_title',       'myeoncasuals – Contemporary Fashion',                                                       'seo'),
+('meta_desc',        'Shop the latest fashion collection at myeoncasuals. Quality clothing for men, women and kids.', 'seo'),
+('google_analytics', '',                                                                                          'seo');
 
 -- Shipping Settings
-INSERT INTO shipping_settings (key_name,key_value) VALUES
-('free_shipping_above','499'),
-('standard_charge',    '60'),
-('express_charge',     '120'),
-('razorpay_key_id',    'rzp_test_placeholder'),
-('razorpay_key_secret','placeholder_secret'),
-('estimated_days',     '3-5');
+INSERT INTO shipping_settings (key_name, key_value) VALUES
+('free_shipping_above', '499'),
+('standard_charge',     '60'),
+('express_charge',      '120'),
+('razorpay_key_id',     'rzp_test_placeholder'),
+('razorpay_key_secret', 'placeholder_secret'),
+('estimated_days',      '3-5');
 
 -- Banners
-INSERT INTO banners (title,subtitle,image,link_url,btn_text,type,sort_order,status) VALUES
-('Fresh Spices From Farm','Directly sourced from finest farms across India','banner1.jpg','/stack-change/spicemart/shop','Shop Now','slider',1,1),
-('Premium Masala Collection','Authentic blends for restaurant-quality cooking','banner2.jpg','/stack-change/spicemart/shop?category=blended-masala','Explore','slider',2,1),
-('Flat ₹50 Off','Use code FLAT50 on orders above ₹500','banner3.jpg','/stack-change/spicemart/shop','Grab Deal','offer',1,1);
+INSERT INTO banners (title, subtitle, image, link_url, btn_text, type, sort_order, status) VALUES
+('New Arrivals This Season', 'Fresh styles for men and women — crafted for comfort and class', 'banner1.svg', 'shop',               'Shop Now',  'slider', 1, 1),
+('Women\'s Collection',      'Elegant kurtas, dresses and more — discover your style',         'banner2.svg', 'shop?category=women','Explore',   'slider', 2, 1),
+('Flat ₹50 Off',             'Use code FLAT50 on orders above ₹999',                          'banner3.svg', 'shop',               'Grab Deal', 'offer',  1, 1);
 
 -- Reviews
-INSERT INTO reviews (product_id,user_id,rating,comment) VALUES
-(1, 2,5,'Best cardamom I have ever bought. The aroma fills the whole kitchen!'),
-(4, 2,5,'Pure and vibrant colour. No adulteration. Will definitely buy again.'),
-(7, 2,4,'Amazing garam masala. Tastes just like home-made. Highly recommended.'),
-(14,2,5,'Kashmiri walnuts are incredible. So fresh and buttery — worth every rupee.');
+INSERT INTO reviews (product_id, user_id, rating, comment) VALUES
+(1, 2, 5, 'Great quality tee! The fabric is super soft and the fit is perfect.'),
+(3, 2, 5, 'Excellent Oxford shirt. Very professional look. Totally worth the price.'),
+(5, 2, 4, 'Beautiful kurta, great stitching. Ordered M and it fits perfectly.'),
+(9, 2, 5, 'The leather tote bag is stunning. Very spacious and sturdy. Highly recommend!');
+
+-- Why Choose Us
+INSERT INTO why_choose_us (icon, title, description, sort_order, status) VALUES
+('✨', 'Premium Quality',   'Every piece is crafted with the finest fabrics, ensuring lasting comfort and style you can feel.', 1, 1),
+('🚚', 'Fast Delivery',     'Same-day dispatch on most orders. Free shipping above ₹499 — straight to your doorstep.',         2, 1),
+('🔄', 'Easy Returns',      'Not satisfied? Return within 7 days, no questions asked. We make shopping risk-free.',            3, 1),
+('💳', 'Secure Payments',   'Pay with COD, Razorpay, or UPI. Your payment details are always encrypted and safe.',             4, 1);
+
+-- Testimonials
+INSERT INTO testimonials (customer_name, rating, quote, sort_order, status) VALUES
+('Priya Sharma',  5, 'Absolutely love the quality! The kurta I ordered fits perfectly and the fabric is so comfortable. Will definitely order more.', 1, 1),
+('Rahul Mehta',   5, 'Best online fashion store I have tried. The Oxford shirt exceeded my expectations — great stitching and premium feel.',          2, 1),
+('Ananya Singh',  4, 'Beautiful collection and quick delivery. The floral dress was exactly as shown. Packaging was also very neat and clean.',         3, 1),
+('Vikram Reddy',  5, 'myeoncasuals never disappoints. The tote bag I ordered is stunning — so spacious and looks very premium. Highly recommended!',   4, 1);
