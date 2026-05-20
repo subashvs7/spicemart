@@ -1,7 +1,16 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-$config['base_url'] = 'http://localhost/spicemart/';
+// Auto-detect base URL so the app works at root, subdirectory, local, or live
+if (!empty($_SERVER['HTTP_HOST'])) {
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host     = $_SERVER['HTTP_HOST'];
+    $dir      = dirname($_SERVER['SCRIPT_NAME'] ?? '/index.php');
+    $base     = rtrim(str_replace('\\', '/', $dir), '/') . '/';
+    $config['base_url'] = $protocol . '://' . $host . $base;
+} else {
+    $config['base_url'] = 'http://localhost/spicemart/';
+}
 
 $config['index_page'] = '';
 

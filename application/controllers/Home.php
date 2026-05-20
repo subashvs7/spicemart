@@ -82,9 +82,9 @@ class Home extends CI_Controller {
         $errors = array(); $success = '';
 
         if ($this->input->post('update_profile')) {
-            $name    = trim($this->input->post('name'));
-            $phone   = trim($this->input->post('phone'));
-            $address = trim($this->input->post('address'));
+            $name    = trim($this->input->post('name') ?: '');
+            $phone   = trim($this->input->post('phone') ?: '');
+            $address = trim($this->input->post('address') ?: '');
             if (empty($name)) $errors[] = 'Name cannot be empty.';
             if (empty($errors)) {
                 $this->db->query(
@@ -99,9 +99,9 @@ class Home extends CI_Controller {
         }
 
         if ($this->input->post('change_password')) {
-            $current = $this->input->post('current_password');
-            $newPass = $this->input->post('new_password');
-            $confirm = $this->input->post('confirm_password');
+            $current = $this->input->post('current_password') ?: '';
+            $newPass = $this->input->post('new_password') ?: '';
+            $confirm = $this->input->post('confirm_password') ?: '';
             if ($user['password'] !== $current) {
                 $errors[] = 'Current password is incorrect.';
             } elseif (strlen($newPass) < 6) {
@@ -226,12 +226,12 @@ class Home extends CI_Controller {
         if ($this->input->server('REQUEST_METHOD') === 'POST') {
             $addr_id = (int)$this->input->post('addr_id');
             $label   = trim($this->input->post('label') ?: 'Home');
-            $name    = trim($this->input->post('name'));
-            $phone   = trim($this->input->post('phone'));
-            $line    = trim($this->input->post('address_line'));
-            $city    = trim($this->input->post('city'));
-            $state   = trim($this->input->post('state'));
-            $pin     = trim($this->input->post('pincode'));
+            $name    = trim($this->input->post('name') ?: '');
+            $phone   = trim($this->input->post('phone') ?: '');
+            $line    = trim($this->input->post('address_line') ?: '');
+            $city    = trim($this->input->post('city') ?: '');
+            $state   = trim($this->input->post('state') ?: '');
+            $pin     = trim($this->input->post('pincode') ?: '');
             $default = (int)$this->input->post('is_default');
 
             if (!$name)  $errors[] = 'Full name required.';
@@ -296,7 +296,7 @@ class Home extends CI_Controller {
         $error = '';
 
         if ($this->input->post('submit_cancel')) {
-            $reason = trim($this->input->post('reason'));
+            $reason = trim($this->input->post('reason') ?: '');
             if (!$reason) { $error = 'Please provide a reason.'; }
             else {
                 $this->db->query(
@@ -342,7 +342,7 @@ class Home extends CI_Controller {
         $error = '';
 
         if ($this->input->post('submit_return')) {
-            $reason = trim($this->input->post('reason'));
+            $reason = trim($this->input->post('reason') ?: '');
             if (!$reason) { $error = 'Please provide a reason for return.'; }
             else {
                 $existing = $this->db->query(
@@ -429,11 +429,11 @@ class Home extends CI_Controller {
         $error = ''; $success = '';
 
         if ($this->input->server('REQUEST_METHOD') === 'POST') {
-            $name    = trim($this->input->post('name'));
-            $email   = trim($this->input->post('email'));
-            $phone   = trim($this->input->post('phone'));
-            $subject = trim($this->input->post('subject'));
-            $message = trim($this->input->post('message'));
+            $name    = trim($this->input->post('name') ?: '');
+            $email   = trim($this->input->post('email') ?: '');
+            $phone   = trim($this->input->post('phone') ?: '');
+            $subject = trim($this->input->post('subject') ?: '');
+            $message = trim($this->input->post('message') ?: '');
 
             if (!$name || !$email || !$message) {
                 $error = 'Please fill in all required fields.';

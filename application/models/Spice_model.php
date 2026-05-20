@@ -188,7 +188,7 @@ class Spice_model extends CI_Model {
 
     public function make_slug($str)
     {
-        $str = strtolower(trim($str));
+        $str = strtolower(trim((string)($str ?? '')));
         $str = preg_replace('/[^a-z0-9\s-]/', '', $str);
         $str = preg_replace('/[\s-]+/', '-', $str);
         return trim($str, '-');
@@ -219,6 +219,7 @@ class Spice_model extends CI_Model {
 
     public function order_status_badge($status)
     {
+        $status = (string)($status ?? '');
         $map = array(
             'pending'    => 'secondary',
             'processing' => 'primary',
@@ -232,6 +233,7 @@ class Spice_model extends CI_Model {
 
     public function payment_status_badge($status)
     {
+        $status = (string)($status ?? '');
         $map = array(
             'pending'  => 'warning',
             'paid'     => 'success',
@@ -252,6 +254,7 @@ class Spice_model extends CI_Model {
 
     public function truncate_text($str, $len = 80)
     {
+        $str = (string)($str ?? '');
         if (strlen($str) <= $len) return $str;
         return substr($str, 0, $len).'…';
     }

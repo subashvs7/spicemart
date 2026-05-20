@@ -16,8 +16,8 @@ class Login extends CI_Controller {
         $data['error'] = '';
 
         if ($this->input->post('mode') == 'Login') {
-            $email    = strtolower(trim($this->input->post('email')));
-            $password = $this->input->post('password');
+            $email    = strtolower(trim($this->input->post('email') ?: ''));
+            $password = $this->input->post('password') ?: '';
 
             if (empty($email) || empty($password)) {
                 $data['login'] = false;
@@ -62,11 +62,11 @@ class Login extends CI_Controller {
         $data['form']   = array();
 
         if ($this->input->post('mode') == 'Register') {
-            $name     = trim($this->input->post('name'));
-            $email    = strtolower(trim($this->input->post('email')));
+            $name     = trim($this->input->post('name') ?: '');
+            $email    = strtolower(trim($this->input->post('email') ?: ''));
             $phone    = trim($this->input->post('phone') ?: '');
-            $password = $this->input->post('password');
-            $confirm  = $this->input->post('confirm_password');
+            $password = $this->input->post('password') ?: '';
+            $confirm  = $this->input->post('confirm_password') ?: '';
 
             $data['form'] = compact('name', 'email', 'phone');
 
@@ -111,7 +111,7 @@ class Login extends CI_Controller {
         $data['demo_otp']= '';
 
         if ($this->input->post('step') === 'email') {
-            $email = strtolower(trim($this->input->post('email')));
+            $email = strtolower(trim($this->input->post('email') ?: ''));
             $user  = $this->db->query('SELECT id,name FROM users WHERE email=?', array($email))->row();
             if (!$user) {
                 $data['error'] = 'No account found with this email address.';
@@ -130,7 +130,7 @@ class Login extends CI_Controller {
             }
         } elseif ($this->input->post('step') === 'otp') {
             $token = $this->input->post('token');
-            $otp   = trim($this->input->post('otp'));
+            $otp   = trim($this->input->post('otp') ?: '');
             $rec   = $this->db->query(
                 'SELECT * FROM otp_codes WHERE token=? AND otp=? AND type="reset" AND is_used=0 AND expires_at>NOW()',
                 array($token, $otp)
@@ -144,9 +144,9 @@ class Login extends CI_Controller {
                 $data['token'] = $token;
             }
         } elseif ($this->input->post('step') === 'reset') {
-            $token    = $this->input->post('token');
-            $password = $this->input->post('password');
-            $confirm  = $this->input->post('confirm_password');
+            $token    = $this->input->post('token') ?: '';
+            $password = $this->input->post('password') ?: '';
+            $confirm  = $this->input->post('confirm_password') ?: '';
             $rec      = $this->db->query(
                 'SELECT * FROM otp_codes WHERE token=? AND type="reset" AND is_used=0 AND expires_at>NOW()',
                 array($token)

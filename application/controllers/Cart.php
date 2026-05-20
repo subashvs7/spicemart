@@ -176,12 +176,12 @@ class Cart extends CI_Controller {
                     : '';
                 if (!$shipping_address) $errors[] = 'Please select a valid address.';
             } else {
-                $f_name  = trim($this->input->post('full_name'));
-                $f_phone = trim($this->input->post('phone'));
-                $f_addr  = trim($this->input->post('address'));
-                $f_city  = trim($this->input->post('city'));
-                $f_state = trim($this->input->post('state'));
-                $f_pin   = trim($this->input->post('pincode'));
+                $f_name  = trim($this->input->post('full_name') ?: '');
+                $f_phone = trim($this->input->post('phone') ?: '');
+                $f_addr  = trim($this->input->post('address') ?: '');
+                $f_city  = trim($this->input->post('city') ?: '');
+                $f_state = trim($this->input->post('state') ?: '');
+                $f_pin   = trim($this->input->post('pincode') ?: '');
                 if (!$f_name || !$f_phone || !$f_addr || !$f_city || !$f_pin) {
                     $errors[] = 'Please fill in all shipping address fields.';
                 }

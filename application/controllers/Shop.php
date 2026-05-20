@@ -253,7 +253,7 @@ class Shop extends CI_Controller {
             } else {
                 $user_id = (int)$this->session->userdata(SESS_HEAD.'_user_id');
                 $rating  = (int)$this->input->post('rating');
-                $comment = trim($this->input->post('comment'));
+                $comment = trim($this->input->post('comment') ?: '');
 
                 if ($rating < 1 || $rating > 5) {
                     $error = 'Please select a rating (1-5 stars).';

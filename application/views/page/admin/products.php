@@ -32,23 +32,12 @@
         <span class="label label-warning">Low Stock Only &mdash;
           <a href="<?php echo site_url('admin-products'); ?>">Clear</a>
         </span>
-      <?php elseif ($filter_del): ?>
-        <span class="label label-danger">Deleted Products &mdash;
-          <a href="<?php echo site_url('admin-products'); ?>">Show Active</a>
-        </span>
       <?php endif; ?>
     </h3>
     <div class="box-tools pull-right">
       <a href="<?php echo site_url('admin-products'); ?>?filter=low_stock"
          class="btn btn-sm btn-warning margin-r-5">
         <i class="fa fa-exclamation-triangle"></i> Low Stock
-      </a>
-      <a href="<?php echo site_url('admin-products'); ?>?filter=deleted"
-         class="btn btn-sm btn-danger margin-r-5" title="Soft-deleted products">
-        <i class="fa fa-trash"></i> Deleted
-        <?php if (!empty($deleted_count) && $deleted_count > 0): ?>
-          <span class="badge" style="background:#fff;color:#c0392b"><?php echo $deleted_count; ?></span>
-        <?php endif; ?>
       </a>
       <button class="btn btn-sm btn-saffron" id="btnAddProduct">
         <i class="fa fa-plus"></i> Add Product
@@ -120,43 +109,29 @@
               </span>
             </td>
             <td>
-              <?php if ((int)$p['status'] === 1): ?>
-                <span class="label label-success">Active</span>
-              <?php elseif ((int)$p['status'] === 0): ?>
-                <span class="label label-default">Inactive</span>
-              <?php else: ?>
-                <span class="label label-danger">Deleted</span>
-              <?php endif; ?>
+              <span class="label <?php echo $p['status'] ? 'label-success' : 'label-default'; ?>">
+                <?php echo $p['status'] ? 'Active' : 'Inactive'; ?>
+              </span>
             </td>
             <td style="white-space:nowrap">
-              <?php if ((int)$p['status'] === -1): ?>
-                <!-- Deleted product — restore only -->
-                <a href="<?php echo site_url('admin-products'); ?>?action=restore&edit=<?php echo $p['id']; ?>"
-                   class="btn btn-xs btn-success"
-                   onclick="return confirm('Restore this product?')"
-                   title="Restore product">
-                  <i class="fa fa-undo"></i> Restore
-                </a>
-              <?php else: ?>
-                <!-- Edit → opens modal -->
-                <button class="btn btn-xs btn-saffron open-edit-modal"
-                        data-product='<?php echo htmlspecialchars(json_encode($p), ENT_QUOTES); ?>'
-                        title="Edit product">
-                  <i class="fa fa-pencil"></i> Edit
-                </button>
-                <!-- Toggle active/inactive -->
-                <a href="<?php echo site_url('admin-products'); ?>?action=toggle&edit=<?php echo $p['id']; ?>"
-                   class="btn btn-xs btn-warning"
-                   title="<?php echo $p['status'] ? 'Deactivate' : 'Activate'; ?>">
-                  <i class="fa fa-<?php echo $p['status'] ? 'eye-slash' : 'eye'; ?>"></i>
-                </a>
-                <!-- Soft-delete (moves to Deleted tab) -->
-                <a href="<?php echo site_url('admin-products'); ?>?action=delete&edit=<?php echo $p['id']; ?>"
-                   class="btn btn-xs btn-danger"
-                   onclick="return confirm('Move this product to Deleted? It will be hidden from the shop.')">
-                  <i class="fa fa-trash"></i>
-                </a>
-              <?php endif; ?>
+              <!-- Edit → opens modal -->
+              <button class="btn btn-xs btn-saffron open-edit-modal"
+                      data-product='<?php echo htmlspecialchars(json_encode($p), ENT_QUOTES); ?>'
+                      title="Edit product">
+                <i class="fa fa-pencil"></i> Edit
+              </button>
+              <!-- Toggle active (1) ↔ inactive (0) -->
+              <a href="<?php echo site_url('admin-products'); ?>?action=toggle&edit=<?php echo $p['id']; ?>"
+                 class="btn btn-xs btn-warning"
+                 title="<?php echo $p['status'] ? 'Deactivate' : 'Activate'; ?>">
+                <i class="fa fa-<?php echo $p['status'] ? 'eye-slash' : 'eye'; ?>"></i>
+              </a>
+              <!-- Delete — hides from admin and shop (status = -1) -->
+              <a href="<?php echo site_url('admin-products'); ?>?action=delete&edit=<?php echo $p['id']; ?>"
+                 class="btn btn-xs btn-danger"
+                 onclick="return confirm('Delete this product? It will be permanently hidden.')">
+                <i class="fa fa-trash"></i>
+              </a>
             </td>
           </tr>
           <?php endforeach; ?>

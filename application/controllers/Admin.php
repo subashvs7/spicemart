@@ -97,7 +97,7 @@ class Admin extends CI_Controller {
             $post_id     = (int)$this->input->post('product_id');
             $cat_id      = (int)$this->input->post('category_id');
             $brand_id    = (int)$this->input->post('brand_id') ?: null;
-            $name        = trim($this->input->post('name'));
+            $name        = trim($this->input->post('name') ?: '');
             $description = trim($this->input->post('description') ?: '');
             $price       = (float)$this->input->post('price');
             $offer_price = (float)$this->input->post('offer_price') ?: null;
@@ -150,38 +150,23 @@ class Admin extends CI_Controller {
         $action  = $this->input->get('action') ?: '';
         $edit_id = (int)$this->input->get('edit');
         if ($action === 'delete' && $edit_id) {
-            // status = -1 marks the product as soft-deleted (hidden from both admin list and shop)
             $this->db->query('UPDATE products SET status=-1 WHERE id=?', array($edit_id));
-            $this->session->set_flashdata('success', 'Product deleted. You can restore it from the Deleted filter.');
+            $this->session->set_flashdata('success', 'Product deleted.');
             redirect('admin-products');
         }
-        if ($action === 'restore' && $edit_id) {
-            $this->db->query('UPDATE products SET status=0 WHERE id=?', array($edit_id));
-            $this->session->set_flashdata('success', 'Product restored as Inactive. Use the toggle to activate it.');
-            redirect('admin-products?filter=deleted');
-        }
         if ($action === 'toggle' && $edit_id) {
-            // Only toggle between active (1) and inactive (0); do not touch deleted (-1)
+            // Toggles only between active (1) and inactive (0); deleted (-1) is not affected
             $this->db->query('UPDATE products SET status=1-status WHERE id=? AND status >= 0', array($edit_id));
             redirect('admin-products');
         }
 
-        $filter      = $this->input->get('filter') ?: '';
-        $filter_low  = ($filter === 'low_stock');
-        $filter_del  = ($filter === 'deleted');
+        $filter_low = $this->input->get('filter') === 'low_stock';
         if ($filter_low) {
             $products = $this->db->query(
                 'SELECT p.*,c.name AS cat_name,b.name AS brand_name FROM products p
                  JOIN categories c ON c.id=p.category_id
                  LEFT JOIN brands b ON b.id=p.brand_id
                  WHERE p.stock_qty<20 AND p.status=1 ORDER BY p.stock_qty'
-            )->result_array();
-        } elseif ($filter_del) {
-            $products = $this->db->query(
-                'SELECT p.*,c.name AS cat_name,b.name AS brand_name FROM products p
-                 JOIN categories c ON c.id=p.category_id
-                 LEFT JOIN brands b ON b.id=p.brand_id
-                 WHERE p.status=-1 ORDER BY p.id DESC'
             )->result_array();
         } else {
             $products = $this->db->query(
@@ -192,20 +177,14 @@ class Admin extends CI_Controller {
             )->result_array();
         }
 
-        $deleted_count = (int)$this->db->query(
-            'SELECT COUNT(*) AS cnt FROM products WHERE status=-1'
-        )->row()->cnt;
-
-        $data['js']            = 'admin-products.inc';
-        $data['page']          = 'products';
-        $data['products']      = $products;
-        $data['categories']    = $categories;
-        $data['brands']        = $brands;
-        $data['errors']        = $errors;
-        $data['success']       = $success;
-        $data['filter_low']    = $filter_low;
-        $data['filter_del']    = $filter_del;
-        $data['deleted_count'] = $deleted_count;
+        $data['js']         = 'admin-products.inc';
+        $data['page']       = 'products';
+        $data['products']   = $products;
+        $data['categories'] = $categories;
+        $data['brands']     = $brands;
+        $data['errors']     = $errors;
+        $data['success']    = $success;
+        $data['filter_low'] = $filter_low;
 
         $this->load->view('inc/header', $data);
         $this->load->view('inc/left-menu', $data);
@@ -225,7 +204,7 @@ class Admin extends CI_Controller {
         if ($this->input->server('REQUEST_METHOD') === 'POST') {
             $cat_id    = (int)$this->input->post('cat_id');
             $parent_id = (int)$this->input->post('parent_id') ?: null;
-            $name      = trim($this->input->post('name'));
+            $name      = trim($this->input->post('name') ?: '');
             $status    = (int)$this->input->post('status');
 
             if (!$name) $errors[] = 'Category name is required.';
@@ -306,7 +285,7 @@ class Admin extends CI_Controller {
 
         if ($this->input->server('REQUEST_METHOD') === 'POST') {
             $brand_id = (int)$this->input->post('brand_id');
-            $name     = trim($this->input->post('name'));
+            $name     = trim($this->input->post('name') ?: '');
             $status   = (int)$this->input->post('status');
             if (!$name) $errors[] = 'Brand name is required.';
 
@@ -485,7 +464,7 @@ class Admin extends CI_Controller {
 
         if ($this->input->server('REQUEST_METHOD') === 'POST') {
             $coupon_id   = (int)$this->input->post('coupon_id');
-            $code        = strtoupper(trim($this->input->post('code')));
+            $code        = strtoupper(trim($this->input->post('code') ?: ''));
             $type        = $this->input->post('type');
             $value       = (float)$this->input->post('value');
             $min_order   = (float)$this->input->post('min_order') ?: 0;
@@ -620,9 +599,9 @@ class Admin extends CI_Controller {
 
         if ($this->input->server('REQUEST_METHOD') === 'POST') {
             $page_id   = (int)$this->input->post('page_id');
-            $title     = trim($this->input->post('title'));
+            $title     = trim($this->input->post('title') ?: '');
             $slug      = $this->spice_model->make_slug(trim($this->input->post('slug') ?: $title));
-            $content   = $this->input->post('content');
+            $content   = $this->input->post('content') ?: '';
             $meta_title= trim($this->input->post('meta_title') ?: '');
             $meta_desc = trim($this->input->post('meta_desc') ?: '');
             $status    = (int)$this->input->post('status');
@@ -680,8 +659,8 @@ class Admin extends CI_Controller {
         if ($this->input->server('REQUEST_METHOD') === 'POST') {
             $item_id     = (int)$this->input->post('item_id');
             $icon        = trim($this->input->post('icon') ?: '🌿');
-            $title       = trim($this->input->post('title'));
-            $description = trim($this->input->post('description'));
+            $title       = trim($this->input->post('title') ?: '');
+            $description = trim($this->input->post('description') ?: '');
             $sort_order  = (int)$this->input->post('sort_order');
             $status      = (int)$this->input->post('status');
 
@@ -746,9 +725,9 @@ class Admin extends CI_Controller {
 
         if ($this->input->server('REQUEST_METHOD') === 'POST') {
             $testimonial_id = (int)$this->input->post('testimonial_id');
-            $customer_name  = trim($this->input->post('customer_name'));
+            $customer_name  = trim($this->input->post('customer_name') ?: '');
             $rating         = (int)$this->input->post('rating');
-            $quote          = trim($this->input->post('quote'));
+            $quote          = trim($this->input->post('quote') ?: '');
             $sort_order     = (int)$this->input->post('sort_order');
             $status         = (int)$this->input->post('status');
 
@@ -914,9 +893,9 @@ class Admin extends CI_Controller {
 
         if ($this->input->server('REQUEST_METHOD') === 'POST') {
             $uid      = (int)$this->input->post('user_id');
-            $name     = trim($this->input->post('name'));
-            $email    = strtolower(trim($this->input->post('email')));
-            $password = trim($this->input->post('password'));
+            $name     = trim($this->input->post('name') ?: '');
+            $email    = strtolower(trim($this->input->post('email') ?: ''));
+            $password = trim($this->input->post('password') ?: '');
             $role     = $this->input->post('role') === 'staff' ? 'staff' : 'admin';
             $perms    = implode(',', (array)$this->input->post('permissions') ?: array());
 
@@ -1043,7 +1022,7 @@ class Admin extends CI_Controller {
         if ($this->input->server('REQUEST_METHOD') === 'POST' && $this->input->post('update_basic')) {
             $cat_id      = (int)$this->input->post('category_id');
             $brand_id    = (int)$this->input->post('brand_id') ?: null;
-            $name        = trim($this->input->post('name'));
+            $name        = trim($this->input->post('name') ?: '');
             $description = trim($this->input->post('description') ?: '');
             $price       = (float)$this->input->post('price');
             $offer_price = (float)$this->input->post('offer_price') ?: null;
@@ -1164,8 +1143,8 @@ class Admin extends CI_Controller {
 
         $product_id     = (int)$this->input->post('product_id');
         $variant_id     = (int)$this->input->post('variant_id');
-        $variant_type   = trim($this->input->post('variant_type'));
-        $variant_value  = trim($this->input->post('variant_value'));
+        $variant_type   = trim($this->input->post('variant_type') ?: '');
+        $variant_value  = trim($this->input->post('variant_value') ?: '');
         $price_modifier = (float)$this->input->post('price_modifier');
         $stock_qty      = max(0, (int)$this->input->post('stock_qty'));
         $sku            = trim($this->input->post('sku') ?: '');
