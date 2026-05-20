@@ -133,19 +133,22 @@
               </button>
 
             <?php else: ?>
-              <!-- Text / size button -->
+              <!-- Text / size button — always clickable; OOS is handled in JS -->
               <button type="button"
-                      class="btn btn-sm btn-outline-secondary variant-btn"
+                      class="btn btn-sm btn-outline-secondary variant-btn<?php echo (int)$vo['stock_qty'] === 0 ? ' variant-oos' : ''; ?>"
                       data-variant-id="<?php echo $vo['id']; ?>"
                       data-variant-type="<?php echo htmlspecialchars($vtype); ?>"
                       data-variant-value="<?php echo htmlspecialchars($vo['variant_value']); ?>"
                       data-price-mod="<?php echo $vo['price_modifier']; ?>"
                       data-stock="<?php echo (int)$vo['stock_qty']; ?>"
                       data-sku="<?php echo htmlspecialchars($vo['sku'] ?? ''); ?>"
-                      <?php if ((int)$vo['stock_qty'] === 0): ?>disabled title="Out of stock"<?php endif; ?>>
+                      title="<?php echo (int)$vo['stock_qty'] === 0 ? 'Out of stock' : htmlspecialchars($vo['variant_value'].$modLabel); ?>">
                 <?php echo htmlspecialchars($vo['variant_value']); ?>
                 <?php if ($modLabel): ?>
                   <small class="opacity-75"><?php echo $modLabel; ?></small>
+                <?php endif; ?>
+                <?php if ((int)$vo['stock_qty'] === 0): ?>
+                  <small style="font-size:.65rem;display:block;line-height:1;opacity:.7">OOS</small>
                 <?php endif; ?>
               </button>
             <?php endif; ?>

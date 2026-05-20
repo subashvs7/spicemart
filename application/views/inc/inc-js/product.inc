@@ -17,6 +17,7 @@
 
     btn.addEventListener('click', function () {
       var isColor = !!btn.dataset.colorHex;
+      var isOos   = parseInt(btn.dataset.stock || '0', 10) === 0;
 
       // Deselect all siblings in this group
       variantGroups[type].forEach(function (b) {
@@ -31,7 +32,6 @@
       // Select this button
       if (isColor) {
         btn.classList.add('swatch-selected');
-        // Show color name label
         var labelEl = document.getElementById('colorNameLabel_' + type);
         if (labelEl) labelEl.textContent = btn.dataset.colorName || '';
       } else {
@@ -45,6 +45,7 @@
         type:     type,
         priceMod: parseFloat(btn.dataset.priceMod || '0'),
         sku:      btn.dataset.sku || '',
+        oos:      isOos,
       };
 
       // Hide "required" hint for this group
@@ -54,6 +55,7 @@
       updatePrice();
       updateSku();
       syncAddBtn();
+      updateCartBtnStock();
     });
   });
 
@@ -98,6 +100,20 @@
       qtyInput.value    = val;
       addBtn.dataset.qty = val;
     });
+  }
+
+  function updateCartBtnStock() {
+    if (!addBtn) return;
+    var anyOos = Object.keys(selected).some(function (t) { return selected[t].oos; });
+    if (anyOos) {
+      addBtn.disabled = true;
+      addBtn.innerHTML = '<i class="bi bi-bag-x me-2"></i>Out of Stock';
+      addBtn.style.opacity = '0.6';
+    } else {
+      addBtn.disabled = false;
+      addBtn.innerHTML = '<i class="bi bi-bag-plus me-2"></i>Add to Cart';
+      addBtn.style.opacity = '';
+    }
   }
 
   // Intercept Add to Cart click — validate before main.js fires

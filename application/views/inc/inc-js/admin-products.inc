@@ -294,7 +294,7 @@ $(function () {
     else { $('#pmVarType').val('custom'); $('#pmVarCustomWrap').show(); $('#pmVarCustomType').val(type); }
     togglePmColorPicker(type);
     if (type === 'color') {
-      var hex = $(this).data('color') || '#FF6B35';
+      var hex = $(this).data('color') || '#7B4228';
       $('#pmVarColorPicker').val(hex);
       $('#pmVarColorHex').val(hex);
       $('#pmVarColorSwatch').css('background', hex);
@@ -336,8 +336,8 @@ $(function () {
     $('#pmVarEditId').val('0'); $('#pmVarType').val('size');
     $('#pmVarCustomWrap').hide(); $('#pmVarCustomType').val('');
     $('#pmVarColorRow').hide();
-    $('#pmVarColorPicker').val('#FF6B35'); $('#pmVarColorHex').val('#FF6B35');
-    $('#pmVarColorSwatch').css('background','#FF6B35');
+    $('#pmVarColorPicker').val('#7B4228'); $('#pmVarColorHex').val('#7B4228');
+    $('#pmVarColorSwatch').css('background','#7B4228');
     $('#pmVarValue').val(''); $('#pmVarPrice').val('0');
     $('#pmVarStock').val('0'); $('#pmVarSku').val('');
     $('#pmVarFormTitle').text('Add Variant');
@@ -476,7 +476,7 @@ $(function () {
     else { $('#sizeType').val('custom'); $('#sizeCustomTypeWrap').show(); $('#sizeCustomType').val(type); }
     toggleSizeColorPicker(type);
     if (type === 'color') {
-      var hex = $(this).data('color') || '#FF6B35';
+      var hex = $(this).data('color') || '#7B4228';
       $('#sizeColorPicker').val(hex); $('#sizeColorHex').val(hex); $('#sizeColorSwatch').css('background', hex);
     }
     $('#sizeEditId').val(id);
@@ -513,7 +513,7 @@ $(function () {
     $('#sizeEditId').val('0'); $('#sizeType').val('size');
     $('#sizeCustomTypeWrap').hide(); $('#sizeCustomType').val('');
     $('#sizeColorRow').hide();
-    $('#sizeColorPicker').val('#FF6B35'); $('#sizeColorHex').val('#FF6B35'); $('#sizeColorSwatch').css('background','#FF6B35');
+    $('#sizeColorPicker').val('#7B4228'); $('#sizeColorHex').val('#7B4228'); $('#sizeColorSwatch').css('background','#7B4228');
     $('#sizeValue').val(''); $('#sizePriceMod').val('0');
     $('#sizeStock').val('0'); $('#sizeSku').val('');
     $('#sizeFormHeading').text('Add New Variant');

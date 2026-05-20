@@ -3,6 +3,14 @@
  * CodeIgniter — SpiceMart front controller
  */
 
+/* Auto-set production on the live domain so CI_ENV doesn't need to be
+   configured on the server separately. */
+if (empty($_SERVER['CI_ENV'])) {
+    $host = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '';
+    if (strpos($host, 'myeoncasuals.com') !== false) {
+        $_SERVER['CI_ENV'] = 'production';
+    }
+}
 define('ENVIRONMENT', isset($_SERVER['CI_ENV']) ? $_SERVER['CI_ENV'] : 'development');
 
 switch (ENVIRONMENT)
@@ -32,7 +40,7 @@ switch (ENVIRONMENT)
 }
 
 // Shared CI3 system folder from proman project
-$system_path = '../proman/system';
+$system_path = 'system';
 
 $application_folder = 'application';
 

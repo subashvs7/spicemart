@@ -150,15 +150,25 @@ class Admin extends CI_Controller {
         $action  = $this->input->get('action') ?: '';
         $edit_id = (int)$this->input->get('edit');
         if ($action === 'delete' && $edit_id) {
-            $this->db->query('UPDATE products SET status=0 WHERE id=?', array($edit_id));
+            // status = -1 marks the product as soft-deleted (hidden from both admin list and shop)
+            $this->db->query('UPDATE products SET status=-1 WHERE id=?', array($edit_id));
+            $this->session->set_flashdata('success', 'Product deleted. You can restore it from the Deleted filter.');
             redirect('admin-products');
         }
+        if ($action === 'restore' && $edit_id) {
+            $this->db->query('UPDATE products SET status=0 WHERE id=?', array($edit_id));
+            $this->session->set_flashdata('success', 'Product restored as Inactive. Use the toggle to activate it.');
+            redirect('admin-products?filter=deleted');
+        }
         if ($action === 'toggle' && $edit_id) {
-            $this->db->query('UPDATE products SET status=1-status WHERE id=?', array($edit_id));
+            // Only toggle between active (1) and inactive (0); do not touch deleted (-1)
+            $this->db->query('UPDATE products SET status=1-status WHERE id=? AND status >= 0', array($edit_id));
             redirect('admin-products');
         }
 
-        $filter_low = $this->input->get('filter') === 'low_stock';
+        $filter      = $this->input->get('filter') ?: '';
+        $filter_low  = ($filter === 'low_stock');
+        $filter_del  = ($filter === 'deleted');
         if ($filter_low) {
             $products = $this->db->query(
                 'SELECT p.*,c.name AS cat_name,b.name AS brand_name FROM products p
@@ -166,23 +176,36 @@ class Admin extends CI_Controller {
                  LEFT JOIN brands b ON b.id=p.brand_id
                  WHERE p.stock_qty<20 AND p.status=1 ORDER BY p.stock_qty'
             )->result_array();
+        } elseif ($filter_del) {
+            $products = $this->db->query(
+                'SELECT p.*,c.name AS cat_name,b.name AS brand_name FROM products p
+                 JOIN categories c ON c.id=p.category_id
+                 LEFT JOIN brands b ON b.id=p.brand_id
+                 WHERE p.status=-1 ORDER BY p.id DESC'
+            )->result_array();
         } else {
             $products = $this->db->query(
                 'SELECT p.*,c.name AS cat_name,b.name AS brand_name FROM products p
                  JOIN categories c ON c.id=p.category_id
                  LEFT JOIN brands b ON b.id=p.brand_id
-                 ORDER BY p.id DESC'
+                 WHERE p.status >= 0 ORDER BY p.id DESC'
             )->result_array();
         }
 
-        $data['js']         = 'admin-products.inc';
-        $data['page']       = 'products';
-        $data['products']   = $products;
-        $data['categories'] = $categories;
-        $data['brands']     = $brands;
-        $data['errors']     = $errors;
-        $data['success']    = $success;
-        $data['filter_low'] = $filter_low;
+        $deleted_count = (int)$this->db->query(
+            'SELECT COUNT(*) AS cnt FROM products WHERE status=-1'
+        )->row()->cnt;
+
+        $data['js']            = 'admin-products.inc';
+        $data['page']          = 'products';
+        $data['products']      = $products;
+        $data['categories']    = $categories;
+        $data['brands']        = $brands;
+        $data['errors']        = $errors;
+        $data['success']       = $success;
+        $data['filter_low']    = $filter_low;
+        $data['filter_del']    = $filter_del;
+        $data['deleted_count'] = $deleted_count;
 
         $this->load->view('inc/header', $data);
         $this->load->view('inc/left-menu', $data);
