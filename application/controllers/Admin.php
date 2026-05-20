@@ -118,7 +118,7 @@ class Admin extends CI_Controller {
             if (!empty($_FILES['image']['name'])) {
                 $this->load->library('upload', array(
                     'upload_path'   => FCPATH.'uploads/products/',
-                    'allowed_types' => 'jpg|jpeg|png|webp|gif',
+                    'allowed_types' => 'jpg|jpeg|png|webp|gif|svg',
                     'max_size'      => 2048,
                     'encrypt_name'  => TRUE,
                 ));
@@ -213,7 +213,7 @@ class Admin extends CI_Controller {
             if (!empty($_FILES['image']['name'])) {
                 $this->load->library('upload', array(
                     'upload_path'   => FCPATH.'uploads/products/',
-                    'allowed_types' => 'jpg|jpeg|png|webp|gif',
+                    'allowed_types' => 'jpg|jpeg|png|webp|gif|svg',
                     'max_size'      => 1024,
                     'encrypt_name'  => TRUE,
                 ));
@@ -293,7 +293,7 @@ class Admin extends CI_Controller {
             if (!empty($_FILES['image']['name'])) {
                 $this->load->library('upload', array(
                     'upload_path'   => FCPATH.'uploads/products/',
-                    'allowed_types' => 'jpg|jpeg|png|webp',
+                    'allowed_types' => 'jpg|jpeg|png|webp|gif|svg',
                     'max_size'      => 1024,
                     'encrypt_name'  => TRUE,
                 ));
@@ -537,7 +537,7 @@ class Admin extends CI_Controller {
             if (!empty($_FILES['image']['name'])) {
                 $this->load->library('upload', array(
                     'upload_path'   => FCPATH.'uploads/banners/',
-                    'allowed_types' => 'jpg|jpeg|png|webp',
+                    'allowed_types' => 'jpg|jpeg|png|webp|gif|svg',
                     'max_size'      => 3072,
                     'encrypt_name'  => TRUE,
                 ));
@@ -1043,7 +1043,7 @@ class Admin extends CI_Controller {
             if (!empty($_FILES['image']['name'])) {
                 $this->load->library('upload', array(
                     'upload_path'   => FCPATH.'uploads/products/',
-                    'allowed_types' => 'jpg|jpeg|png|webp|gif',
+                    'allowed_types' => 'jpg|jpeg|png|webp|gif|svg',
                     'max_size'      => 2048,
                     'encrypt_name'  => TRUE,
                 ));
@@ -1205,7 +1205,7 @@ class Admin extends CI_Controller {
 
         $this->load->library('upload', array(
             'upload_path'   => FCPATH.'uploads/products/',
-            'allowed_types' => 'jpg|jpeg|png|webp|gif',
+            'allowed_types' => 'jpg|jpeg|png|webp|gif|svg',
             'max_size'      => 2048,
             'encrypt_name'  => TRUE,
         ));
@@ -1223,7 +1223,7 @@ class Admin extends CI_Controller {
 
             $this->upload->initialize(array(
                 'upload_path'   => FCPATH.'uploads/products/',
-                'allowed_types' => 'jpg|jpeg|png|webp|gif',
+                'allowed_types' => 'jpg|jpeg|png|webp|gif|svg',
                 'max_size'      => 2048,
                 'encrypt_name'  => TRUE,
             ));
