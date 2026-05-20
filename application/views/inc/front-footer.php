@@ -33,7 +33,7 @@ $socials = array(
       <!-- Brand blurb -->
       <div class="col-lg-4">
         <h5 class="footer-brand">🛍️ <?php echo fs($cfg,'site_name','myeoncasuals'); ?></h5>
-        <p class="text-muted small mt-2">
+        <p class="small mt-2" style="color:rgba(255,255,255,.75)">
           <?php echo nl2br(fs($cfg,'footer_about','Bringing you the trendiest casual wear at affordable prices. Quality fabrics, stylish designs, delivered to your doorstep.')); ?>
         </p>
         <div class="social-links mt-3">

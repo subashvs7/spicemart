@@ -190,7 +190,7 @@ if (!empty($all_categories)) {
         <a href="<?php echo site_url('wishlist'); ?>"
            class="nav-icon-btn position-relative d-none d-lg-flex">
           <i class="bi bi-heart fs-5"></i>
-          <span class="cart-badge" id="wishlistBadge"
+          <span class="wishlist-badge" id="wishlistBadge"
                 <?php if (empty($wishlist_count)) echo 'style="display:none"'; ?>>
             <?php echo isset($wishlist_count) ? $wishlist_count : 0; ?>
           </span>
