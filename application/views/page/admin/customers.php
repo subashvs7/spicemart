@@ -20,7 +20,7 @@
               <tr <?php echo $view_id === (int)$c['id'] ? 'class="warning"' : ''; ?>>
                 <td>
                   <div class="clearfix">
-                    <div style="width:34px;height:34px;border-radius:50%;background:#FF6B35;
+                    <div style="width:34px;height:34px;border-radius:50%;background:#7B4228;
                                 display:flex;align-items:center;justify-content:center;
                                 color:#fff;font-weight:600;font-size:.85rem;float:left;margin-right:8px">
                       <?php echo strtoupper(substr($c['name'],0,1)); ?>
@@ -60,7 +60,7 @@
         </div>
       </div>
       <div class="box-body text-center">
-        <div style="width:65px;height:65px;border-radius:50%;background:#FF6B35;
+        <div style="width:65px;height:65px;border-radius:50%;background:#7B4228;
                     display:flex;align-items:center;justify-content:center;
                     margin:0 auto 10px;font-size:1.8rem;color:#fff;font-weight:700">
           <?php echo strtoupper(substr($view_customer['name'],0,1)); ?>

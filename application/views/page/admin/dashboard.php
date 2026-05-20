@@ -86,7 +86,7 @@
         <div class="row">
           <div class="col-xs-6">
             <div class="description-block border-right">
-              <span class="description-percentage" style="color:#FF6B35"><?php echo $active_products; ?></span>
+              <span class="description-percentage" style="color:#7B4228"><?php echo $active_products; ?></span>
               <h5 class="description-header"></h5>
               <span class="description-text">ACTIVE PRODUCTS</span>
             </div>
@@ -172,8 +172,8 @@ new Chart(ctx, {
     datasets: [{
       label: 'Revenue (₹)',
       data: <?php echo $chart_revenue; ?>,
-      backgroundColor: 'rgba(255,107,53,.75)',
-      borderColor: '#FF6B35',
+      backgroundColor: 'rgba(123,66,40,.75)',
+      borderColor: '#7B4228',
       borderWidth: 2,
       borderRadius: 4
     }]

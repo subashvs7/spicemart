@@ -160,7 +160,7 @@
 
       <?php if (!empty($product['weight'])): ?>
       <div class="mb-3">
-        <span class="badge rounded-pill" style="background:rgba(255,107,53,.15);color:var(--saffron);font-size:.85rem;padding:.4rem .9rem">
+        <span class="badge rounded-pill" style="background:rgba(123,66,40,.15);color:var(--saffron);font-size:.85rem;padding:.4rem .9rem">
           📦 <?php echo htmlspecialchars($product['weight']); ?>
         </span>
       </div>

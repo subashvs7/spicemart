@@ -254,7 +254,7 @@
           <div class="d-flex flex-column gap-3">
             <?php foreach ($addresses as $addr): ?>
             <div class="p-3 rounded-3 border <?php echo $addr['is_default'] ? 'border-saffron' : ''; ?>"
-                 style="<?php echo $addr['is_default'] ? 'border-color:var(--saffron)!important;background:rgba(255,107,53,.03)' : ''; ?>">
+                 style="<?php echo $addr['is_default'] ? 'border-color:var(--saffron)!important;background:rgba(123,66,40,.03)' : ''; ?>">
               <div class="d-flex justify-content-between">
                 <div>
                   <div class="d-flex align-items-center gap-2 mb-1">

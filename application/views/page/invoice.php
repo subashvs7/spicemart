@@ -7,16 +7,16 @@
   <style>
     body { font-family: Arial, sans-serif; font-size: 13px; color: #333; margin: 0; padding: 20px; }
     .invoice-wrap { max-width: 750px; margin: 0 auto; padding: 30px; border: 1px solid #ddd; }
-    .invoice-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; border-bottom: 2px solid #FF6B35; padding-bottom: 20px; }
-    .brand-name { font-size: 22px; font-weight: 700; color: #FF6B35; }
+    .invoice-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; border-bottom: 2px solid #7B4228; padding-bottom: 20px; }
+    .brand-name { font-size: 22px; font-weight: 700; color: #7B4228; }
     .invoice-no { text-align: right; }
     .invoice-no h2 { margin: 0; font-size: 18px; color: #555; }
     table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-    table th { background: #FF6B35; color: #fff; padding: 8px 10px; text-align: left; }
+    table th { background: #7B4228; color: #fff; padding: 8px 10px; text-align: left; }
     table td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; }
     .totals { width: 260px; margin-left: auto; }
     .totals td { padding: 6px 10px; }
-    .totals .grand { font-weight: 700; font-size: 15px; color: #FF6B35; border-top: 2px solid #FF6B35; }
+    .totals .grand { font-weight: 700; font-size: 15px; color: #7B4228; border-top: 2px solid #7B4228; }
     .footer-note { margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee; font-size: 11px; color: #888; text-align: center; }
     @media print { .no-print { display: none; } body { padding: 0; } .invoice-wrap { border: none; } }
   </style>
@@ -24,7 +24,7 @@
 <body>
 
 <div class="no-print" style="margin-bottom:20px;max-width:750px;margin-left:auto;margin-right:auto">
-  <button onclick="window.print()" style="background:#FF6B35;color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:14px">
+  <button onclick="window.print()" style="background:#7B4228;color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:14px">
     🖨️ Print Invoice
   </button>
   <a href="javascript:history.back()" style="margin-left:10px;color:#555;font-size:13px">← Go Back</a>

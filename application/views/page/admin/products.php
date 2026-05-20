@@ -473,14 +473,14 @@
                   <div class="form-group">
                     <label class="small"><i class="fa fa-paint-brush"></i> Color Code</label>
                     <div class="input-group input-group-sm">
-                      <input type="color" id="pmVarColorPicker" value="#FF6B35"
+                      <input type="color" id="pmVarColorPicker" value="#7B4228"
                              style="width:40px;height:32px;padding:2px;border:1px solid #ccc;border-radius:4px 0 0 4px;cursor:pointer">
                       <input type="text" class="form-control" id="pmVarColorHex"
-                             value="#FF6B35" maxlength="7"
+                             value="#7B4228" maxlength="7"
                              style="font-family:monospace;font-size:.82rem"
                              placeholder="#RRGGBB">
                       <span class="input-group-addon" id="pmVarColorSwatch"
-                            style="width:32px;background:#FF6B35;border-radius:0 4px 4px 0"></span>
+                            style="width:32px;background:#7B4228;border-radius:0 4px 4px 0"></span>
                     </div>
                     <small class="text-muted">Pick or type hex code</small>
                   </div>
@@ -613,14 +613,14 @@
               <div class="form-group">
                 <label class="control-label"><i class="fa fa-paint-brush"></i> Color Code</label>
                 <div class="input-group">
-                  <input type="color" id="sizeColorPicker" value="#FF6B35"
+                  <input type="color" id="sizeColorPicker" value="#7B4228"
                          style="width:40px;height:34px;padding:2px;border:1px solid #ccc;border-radius:4px 0 0 4px;cursor:pointer">
                   <input type="text" class="form-control" id="sizeColorHex"
-                         value="#FF6B35" maxlength="7"
+                         value="#7B4228" maxlength="7"
                          style="font-family:monospace"
                          placeholder="#RRGGBB">
                   <span class="input-group-addon" id="sizeColorSwatch"
-                        style="width:36px;background:#FF6B35;border-radius:0 4px 4px 0"></span>
+                        style="width:36px;background:#7B4228;border-radius:0 4px 4px 0"></span>
                 </div>
                 <small class="text-muted">Pick or type a hex color</small>
               </div>

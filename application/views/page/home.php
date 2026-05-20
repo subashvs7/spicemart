@@ -116,7 +116,7 @@
   <div class="container">
     <div class="stats-v2-grid">
       <div class="stat-v2-item">
-        <div class="stat-v2-icon" style="background:rgba(255,107,53,.12);color:#FF6B35"><i class="bi bi-box-seam-fill"></i></div>
+        <div class="stat-v2-icon" style="background:rgba(123,66,40,.12);color:#7B4228"><i class="bi bi-box-seam-fill"></i></div>
         <div class="stat-v2-body">
           <div class="stat-v2-number"><span class="count-up" data-target="15">15</span>+</div>
           <div class="stat-v2-label">Product Varieties</div>

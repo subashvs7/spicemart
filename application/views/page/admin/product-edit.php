@@ -354,13 +354,13 @@ $pri_img_url= site_url('admin-image-primary/');
               <div class="form-group">
                 <label><i class="fa fa-paint-brush"></i> Color Code</label>
                 <div class="input-group">
-                  <input type="color" id="editColorPicker" value="#FF6B35"
+                  <input type="color" id="editColorPicker" value="#7B4228"
                          style="width:40px;height:34px;padding:2px;border:1px solid #ccc;border-radius:4px 0 0 4px;cursor:pointer">
                   <input type="text" class="form-control" id="editColorHex"
-                         value="#FF6B35" maxlength="7" style="font-family:monospace"
+                         value="#7B4228" maxlength="7" style="font-family:monospace"
                          placeholder="#RRGGBB">
                   <span class="input-group-addon" id="editColorSwatch"
-                        style="width:36px;background:#FF6B35;border-radius:0 4px 4px 0"></span>
+                        style="width:36px;background:#7B4228;border-radius:0 4px 4px 0"></span>
                 </div>
                 <small class="text-muted">Shown as color swatch on the product page</small>
               </div>

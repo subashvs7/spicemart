@@ -121,7 +121,7 @@
             <div class="col-md-6">
               <label class="d-block">
                 <input type="radio" name="payment_method" value="cod" class="d-none" checked>
-                <div class="p-3 rounded-3 payment-option selected-payment" style="cursor:pointer;border:2px solid var(--saffron);background:rgba(255,107,53,.05)">
+                <div class="p-3 rounded-3 payment-option selected-payment" style="cursor:pointer;border:2px solid var(--saffron);background:rgba(123,66,40,.05)">
                   <div class="fs-3 mb-2">💵</div>
                   <div class="fw-600">Cash on Delivery</div>
                   <small class="text-muted">Pay when your order arrives</small>
@@ -240,7 +240,7 @@ document.querySelectorAll('[name="payment_method"]').forEach(function(radio) {
       el.style.background = '';
     });
     this.closest('label').querySelector('.payment-option').style.border = '2px solid var(--saffron)';
-    this.closest('label').querySelector('.payment-option').style.background = 'rgba(255,107,53,.05)';
+    this.closest('label').querySelector('.payment-option').style.background = 'rgba(123,66,40,.05)';
   });
 });
 

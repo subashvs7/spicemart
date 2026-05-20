@@ -153,11 +153,11 @@ new Chart(ctx, {
     datasets: [{
       label: 'Revenue (₹)',
       data: revenue,
-      borderColor: '#FF6B35',
-      backgroundColor: 'rgba(255,107,53,.1)',
+      borderColor: '#7B4228',
+      backgroundColor: 'rgba(123,66,40,.1)',
       borderWidth: 2.5,
       pointRadius: 4,
-      pointBackgroundColor: '#FF6B35',
+      pointBackgroundColor: '#7B4228',
       fill: true,
       tension: 0.35
     }]

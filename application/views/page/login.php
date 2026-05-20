@@ -12,7 +12,7 @@
   <style>
     .login-page { background: linear-gradient(135deg, #2C1810, #5C2E1A); }
     .login-box-body { border-radius: 16px; }
-    .login-logo h3 { color: #FF6B35; font-weight: 700; }
+    .login-logo h3 { color: #7B4228; font-weight: 700; }
   </style>
 </head>
 <body class="hold-transition login-page">
@@ -44,7 +44,7 @@
       <div class="row">
         <div class="col-xs-12">
           <button type="submit" class="btn btn-block btn-flat"
-                  style="background:#FF6B35;color:#fff">Sign In</button>
+                  style="background:#7B4228;color:#fff">Sign In</button>
         </div>
       </div>
     </form>

@@ -27,9 +27,9 @@ defined('BASEPATH') OR exit('No direct script access allowed');
     .skin-blue .main-header .logo { background: #2C1810; }
     .skin-blue .main-header .navbar { background: #3d2214; }
     .skin-blue .main-sidebar, .skin-blue .left-side { background: #222d32; }
-    .btn-saffron { background:#FF6B35; color:#fff; border-color:#FF6B35; }
-    .btn-saffron:hover { background:#e55a25; color:#fff; }
-    .text-saffron { color:#FF6B35 !important; }
+    .btn-saffron { background:#7B4228; color:#fff; border-color:#7B4228; }
+    .btn-saffron:hover { background:#5C2E14; color:#fff; }
+    .text-saffron { color:#7B4228 !important; }
     .stat-card { background:#fff; border-radius:10px; padding:20px; box-shadow:0 2px 10px rgba(0,0,0,.07); }
     .stat-value { font-size:2rem; font-weight:700; }
     .form-card { background:#fff; border-radius:10px; padding:20px; box-shadow:0 2px 10px rgba(0,0,0,.07); margin-bottom:20px; }

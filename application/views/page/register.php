@@ -13,7 +13,7 @@
     .register-page { background: linear-gradient(135deg, #2C1810, #5C2E1A); }
     .login-box { width: 420px; }
     .login-box-body { border-radius: 16px; }
-    .brand-h { color: #FF6B35; font-weight: 700; }
+    .brand-h { color: #7B4228; font-weight: 700; }
   </style>
 </head>
 <body class="hold-transition register-page" style="background:linear-gradient(135deg,#2C1810,#5C2E1A)">
@@ -67,7 +67,7 @@
 
       <div class="row">
         <div class="col-xs-12">
-          <button type="submit" class="btn btn-block btn-flat" style="background:#FF6B35;color:#fff">
+          <button type="submit" class="btn btn-block btn-flat" style="background:#7B4228;color:#fff">
             Create Account
           </button>
         </div>
