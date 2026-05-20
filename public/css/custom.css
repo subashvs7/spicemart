@@ -191,9 +191,26 @@ a { text-decoration: none; transition: var(--transition); }
   box-shadow: 0 0 0 3px rgba(123,66,40,.35);
 }
 .color-swatch-btn.swatch-selected {
-  border-color: var(--saffron);
-  box-shadow: 0 0 0 3px var(--saffron), 0 0 0 5px #fff inset;
-  transform: scale(1.12);
+  border-color: rgba(0,0,0,.2);
+  /* white gap then colored outer ring — visible on any swatch color */
+  box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--saffron);
+  transform: scale(1.1);
+}
+/* Checkmark overlay on selected swatch */
+.color-swatch-btn.swatch-selected::after {
+  content: '✓';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 900;
+  color: #fff;
+  /* Double shadow makes checkmark readable on both light and dark swatches */
+  text-shadow: 0 0 4px rgba(0,0,0,.75), 0 1px 3px rgba(0,0,0,.5);
+  pointer-events: none;
 }
 /* Cross mark for out-of-stock swatches */
 .color-swatch-btn .swatch-oos {
@@ -211,11 +228,11 @@ a { text-decoration: none; transition: var(--transition); }
   );
   pointer-events: none;
 }
-/* Tooltip-style color name strip (shown via JS) */
-#colorNameLabel_color {
+/* Selected color name label shown next to "Color:" heading */
+[id^="colorNameLabel_"] {
   font-size: .82rem;
-  font-style: italic;
-  color: var(--muted);
+  font-weight: 600;
+  color: var(--saffron);
 }
 
 /* Breadcrumb */

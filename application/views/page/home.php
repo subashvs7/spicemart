@@ -66,8 +66,9 @@
       <div class="carousel-inner rounded-4 overflow-hidden shadow-soft">
         <?php foreach ($banners as $bi => $b): ?>
         <div class="carousel-item <?php echo $bi === 0 ? 'active' : ''; ?>">
+          <?php $b_href = !empty($b['link_url']) ? site_url($b['link_url']) : '#'; ?>
           <?php if (!empty($b['image'])): ?>
-            <a href="<?php echo htmlspecialchars(!empty($b['link']) ? $b['link'] : '#'); ?>">
+            <a href="<?php echo htmlspecialchars($b_href); ?>">
               <img src="<?php echo base_url('uploads/banners/'.$b['image']); ?>"
                    class="d-block w-100" style="max-height:420px;object-fit:cover"
                    alt="<?php echo htmlspecialchars($b['title'] ?? ''); ?>">
@@ -81,8 +82,8 @@
                 <?php if (!empty($b['subtitle'])): ?>
                   <p class="mb-4 fs-5" style="opacity:.75"><?php echo htmlspecialchars($b['subtitle']); ?></p>
                 <?php endif; ?>
-                <?php if (!empty($b['link']) && !empty($b['btn_text'])): ?>
-                  <a href="<?php echo htmlspecialchars($b['link']); ?>" class="btn btn-saffron btn-lg px-5"><?php echo htmlspecialchars($b['btn_text']); ?></a>
+                <?php if (!empty($b['link_url']) && !empty($b['btn_text'])): ?>
+                  <a href="<?php echo htmlspecialchars($b_href); ?>" class="btn btn-saffron btn-lg px-5"><?php echo htmlspecialchars($b['btn_text']); ?></a>
                 <?php endif; ?>
               </div>
             </div>

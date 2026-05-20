@@ -145,9 +145,9 @@ $socials = array(
   window.LOGIN_URL           = '<?php echo site_url("login"); ?>';
   window.WISHLIST_TOGGLE_URL = '<?php echo site_url("wishlist/toggle/"); ?>';
 </script>
-<script src="<?php echo base_url('public/js/main.js'); ?>"></script>
+<script src="<?php echo base_url('public/js/main.js'); ?>?v=<?php echo filemtime(FCPATH.'public/js/main.js'); ?>"></script>
 <?php if (isset($js) && !empty($js)) {
-    include_once(APPPATH . 'views/inc/inc-js/' . $js);
+    include_once APPPATH . 'views/inc/inc-js/' . $js;
 } ?>
 </body>
 </html>

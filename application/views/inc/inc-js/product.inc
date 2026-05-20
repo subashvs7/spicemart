@@ -1,19 +1,16 @@
 <script>
 (function () {
-  var VARIANT_URL  = '<?php echo site_url("shop/variant_info"); ?>/';
-  var addBtn       = document.getElementById('addToCartBtn');
-  var qtyInput     = document.getElementById('qtyInput');
-  var priceEl      = document.getElementById('productPrice');
-  var skuEl        = document.getElementById('variantSku');
-  var stockWrap    = document.getElementById('stockBadgeWrap');
-  var basePrice    = priceEl ? parseFloat(priceEl.dataset.basePrice || '0') : 0;
+  var VARIANT_URL = '<?php echo site_url("shop/variant_info"); ?>/';
+  var addBtn      = document.getElementById('addToCartBtn');
+  var qtyInput    = document.getElementById('qtyInput');
+  var priceEl     = document.getElementById('productPrice');
+  var skuEl       = document.getElementById('variantSku');
+  var stockWrap   = document.getElementById('stockBadgeWrap');
+  var basePrice   = priceEl ? parseFloat(priceEl.dataset.basePrice || '0') : 0;
 
-  // { type: {id, value, priceMod, stock, sku} }
-  var selected      = {};
-  // { type: [btn, btn, ...] }
-  var variantGroups = {};
-  // { type: true } — request in flight
-  var pending       = {};
+  var selected      = {};   // { type: {id, value, priceMod, stock, sku} }
+  var variantGroups = {};   // { type: [btn, ...] }
+  var controllers   = {};   // { type: AbortController } — cancel stale AJAX
 
   document.querySelectorAll('.variant-btn').forEach(function (btn) {
     var type = btn.dataset.variantType;
@@ -21,12 +18,10 @@
     variantGroups[type].push(btn);
 
     btn.addEventListener('click', function () {
-      if (pending[type]) return;
-
       var isColor = !!btn.dataset.colorHex;
       var vid     = btn.dataset.variantId;
 
-      // Deselect all siblings
+      /* ── 1. Immediate visual selection (never gated by AJAX) ── */
       variantGroups[type].forEach(function (b) {
         if (b.dataset.colorHex) {
           b.classList.remove('swatch-selected');
@@ -35,7 +30,6 @@
         }
       });
 
-      // Visually select this button immediately
       if (isColor) {
         btn.classList.add('swatch-selected');
         var labelEl = document.getElementById('colorNameLabel_' + type);
@@ -47,16 +41,27 @@
       var reqEl = document.getElementById('req_' + type);
       if (reqEl) reqEl.style.display = 'none';
 
-      // Dim price while fetching
-      if (priceEl) priceEl.style.opacity = '0.4';
+      /* ── 2. Apply data-attribute fallback immediately so UI is always responsive ── */
+      selected[type] = fallback(btn);
+      updatePrice();
+      updateSku();
+      syncAddBtn();
+      updateCartBtnStock();
 
-      pending[type] = true;
+      /* ── 3. AJAX for fresh stock/price (cancel any previous request for this type) ── */
+      if (controllers[type]) {
+        controllers[type].abort();
+      }
+      var ctrl = new AbortController();
+      controllers[type] = ctrl;
 
-      fetch(VARIANT_URL + vid)
+      if (priceEl) priceEl.style.opacity = '0.55';
+
+      fetch(VARIANT_URL + vid, { signal: ctrl.signal })
         .then(function (r) { return r.json(); })
         .then(function (data) {
-          pending[type] = false;
           if (priceEl) priceEl.style.opacity = '';
+          delete controllers[type];
 
           if (data.ok) {
             selected[type] = {
@@ -67,28 +72,23 @@
               sku:      data.sku,
             };
             updateStockWrap(data.stock_qty);
-          } else {
-            // Fallback to data attributes
-            selected[type] = fallback(btn);
+            updatePrice();
+            updateSku();
+            syncAddBtn();
+            updateCartBtnStock();
           }
-
-          updatePrice();
-          updateSku();
-          syncAddBtn();
-          updateCartBtnStock();
         })
-        .catch(function () {
-          pending[type] = false;
-          if (priceEl) priceEl.style.opacity = '';
-          selected[type] = fallback(btn);
-          updatePrice();
-          updateSku();
-          syncAddBtn();
-          updateCartBtnStock();
+        .catch(function (err) {
+          /* AbortError means user clicked a new option — ignore silently */
+          if (err.name !== 'AbortError') {
+            if (priceEl) priceEl.style.opacity = '';
+            delete controllers[type];
+          }
         });
     });
   });
 
+  /* Build fallback object from data-* attributes on the button */
   function fallback(btn) {
     return {
       id:       btn.dataset.variantId,
@@ -156,7 +156,7 @@
     }
   }
 
-  // Qty input sync
+  /* Qty input sync */
   if (qtyInput && addBtn) {
     qtyInput.addEventListener('change', function () {
       var max = parseInt(qtyInput.max || '99', 10);
@@ -166,7 +166,7 @@
     });
   }
 
-  // Validate variant selection before add-to-cart fires
+  /* Validate variant selection before add-to-cart */
   if (addBtn && addBtn.dataset.hasVariants) {
     addBtn.addEventListener('click', function (e) {
       var types   = Object.keys(variantGroups);
