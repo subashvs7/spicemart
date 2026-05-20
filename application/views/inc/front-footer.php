@@ -32,9 +32,9 @@ $socials = array(
 
       <!-- Brand blurb -->
       <div class="col-lg-4">
-        <h5 class="footer-brand">🌶️ <?php echo fs($cfg,'site_name','SpiceMart'); ?></h5>
+        <h5 class="footer-brand">🛍️ <?php echo fs($cfg,'site_name','myeoncasuals'); ?></h5>
         <p class="text-muted small mt-2">
-          <?php echo nl2br(fs($cfg,'footer_about','Bringing the finest farm-fresh spices and masalas directly to your kitchen. 100% pure, no additives, no compromises.')); ?>
+          <?php echo nl2br(fs($cfg,'footer_about','Bringing you the trendiest casual wear at affordable prices. Quality fabrics, stylish designs, delivered to your doorstep.')); ?>
         </p>
         <div class="social-links mt-3">
           <?php foreach ($socials as $key => $meta):
@@ -127,7 +127,7 @@ $socials = array(
     <hr class="footer-hr mt-4">
     <div class="row align-items-center py-3">
       <div class="col-md-6 text-center text-md-start">
-        <small class="text-muted">© <?php echo date('Y'); ?> <?php echo fs($cfg,'footer_copyright','SpiceMart. All rights reserved.'); ?></small>
+        <small class="text-muted">© <?php echo date('Y'); ?> <?php echo fs($cfg,'footer_copyright','myeoncasuals. All rights reserved.'); ?></small>
       </div>
       <div class="col-md-6 text-center text-md-end mt-2 mt-md-0">
         <small class="text-muted">

@@ -16,8 +16,8 @@
 
       <div class="text-center mb-4">
         <a href="<?php echo site_url('home'); ?>" class="text-decoration-none">
-          <div style="font-size:3rem">🌶️</div>
-          <div style="font-family:'Playfair Display',serif;font-size:1.6rem;color:#fff;font-weight:700">SpiceMart</div>
+          <div style="font-size:3rem">🛍️</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.6rem;color:#fff;font-weight:700">myeoncasuals</div>
         </a>
       </div>
 

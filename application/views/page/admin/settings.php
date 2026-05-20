@@ -54,7 +54,7 @@ $logo_url = (!empty($s['site_logo']) && file_exists(FCPATH.'uploads/logo/'.$s['s
               <div class="form-group">
                 <label><i class="fa fa-font"></i> Site Name</label>
                 <input type="text" class="form-control" name="site_name"
-                       value="<?php echo sv($s,'site_name','SpiceMart'); ?>" required>
+                       value="<?php echo sv($s,'site_name','myeoncasuals'); ?>" required>
                 <small class="text-muted">Shown in browser tab and throughout the site.</small>
               </div>
             </div>
@@ -137,7 +137,7 @@ $logo_url = (!empty($s['site_logo']) && file_exists(FCPATH.'uploads/logo/'.$s['s
                   <span class="input-group-addon"><i class="fa fa-envelope"></i></span>
                   <input type="email" class="form-control" name="contact_email"
                          value="<?php echo sv($s,'contact_email'); ?>"
-                         placeholder="hello@spicemart.in">
+                         placeholder="hello@myeoncasuals.com">
                 </div>
               </div>
             </div>
@@ -216,7 +216,7 @@ $logo_url = (!empty($s['site_logo']) && file_exists(FCPATH.'uploads/logo/'.$s['s
                 <div class="input-group">
                   <span class="input-group-addon">© <?php echo date('Y'); ?></span>
                   <input type="text" class="form-control" name="footer_copyright"
-                         value="<?php echo sv($s,'footer_copyright','SpiceMart. All rights reserved.'); ?>">
+                         value="<?php echo sv($s,'footer_copyright','myeoncasuals. All rights reserved.'); ?>">
                 </div>
                 <small class="text-muted">Shown at the very bottom of the page.</small>
               </div>
@@ -240,7 +240,7 @@ $logo_url = (!empty($s['site_logo']) && file_exists(FCPATH.'uploads/logo/'.$s['s
                 <label><i class="fa fa-header"></i> Default Meta Title</label>
                 <input type="text" class="form-control" name="meta_title"
                        value="<?php echo sv($s,'meta_title'); ?>"
-                       placeholder="SpiceMart – Pure Spices & Masala"
+                       placeholder="myeoncasuals – Trendy Casual Wear"
                        maxlength="70">
                 <small class="text-muted">
                   <span id="metaTitleCount"><?php echo strlen($s['meta_title'] ?? ''); ?></span>/70 characters · Used when a page has no custom meta title.

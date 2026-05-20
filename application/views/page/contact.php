@@ -16,7 +16,7 @@
             <div class="p-4 rounded-xl shadow-soft bg-white">
               <div class="fs-2 mb-2">📍</div>
               <h6 class="fw-600">Our Store</h6>
-              <p class="text-muted small mb-0">SpiceMart,<br>123 Spice Bazaar, T. Nagar,<br>Chennai – 600 017, Tamil Nadu</p>
+              <p class="text-muted small mb-0">myeoncasuals,<br>123 Fashion Street, T. Nagar,<br>Chennai – 600 017, Tamil Nadu</p>
             </div>
             <div class="p-4 rounded-xl shadow-soft bg-white">
               <div class="fs-2 mb-2">📞</div>
@@ -26,7 +26,7 @@
             <div class="p-4 rounded-xl shadow-soft bg-white">
               <div class="fs-2 mb-2">✉️</div>
               <h6 class="fw-600">Email Us</h6>
-              <p class="text-muted small mb-0">support@spicemart.in<br>orders@spicemart.in</p>
+              <p class="text-muted small mb-0">support@myeoncasuals.com<br>orders@myeoncasuals.com</p>
             </div>
           </div>
         </div>

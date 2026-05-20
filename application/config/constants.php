@@ -28,5 +28,5 @@ defined('EXIT_DATABASE')       OR define('EXIT_DATABASE', 8);
 defined('EXIT__AUTO_MIN')      OR define('EXIT__AUTO_MIN', 9);
 defined('EXIT__AUTO_MAX')      OR define('EXIT__AUTO_MAX', 125);
 
-defined('APP_NAME')  OR define('APP_NAME',  'SpiceMart');
+defined('APP_NAME')  OR define('APP_NAME',  'myeoncasuals');
 defined('SESS_HEAD') OR define('SESS_HEAD', 'SM');

@@ -157,7 +157,7 @@
   <div class="container">
     <div class="offer-v2-inner">
       <span class="offer-v2-fire">🔥</span>
-      <span class="offer-v2-text"><strong>LIMITED OFFER —</strong> Use code <span class="offer-code-v2">FRESH10</span> for 10% off your first order!</span>
+      <span class="offer-v2-text"><strong>LIMITED OFFER —</strong> Use code <span class="offer-code-v2">STYLE10</span> for 10% off your first order!</span>
       <a href="<?php echo site_url('shop'); ?>" class="offer-v2-btn">Grab Deal <i class="bi bi-arrow-right ms-1"></i></a>
     </div>
   </div>
@@ -396,7 +396,7 @@
 <section class="why-v2-section">
   <div class="container">
     <div class="text-center mb-5">
-      <div class="section-eyebrow">Why SpiceMart</div>
+      <div class="section-eyebrow">Why myeoncasuals</div>
       <h2 class="section-title d-inline-block">Why Choose Us?</h2>
     </div>
     <div class="row g-4">

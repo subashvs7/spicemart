@@ -6,7 +6,7 @@
     <div class="pull-right hidden-xs">
       <strong><?php echo APP_NAME; ?></strong> Admin Panel
     </div>
-    <strong>Copyright &copy; <?php echo date('Y'); ?> SpiceMart.</strong> All rights reserved.
+    <strong>Copyright &copy; <?php echo date('Y'); ?> myeoncasuals.</strong> All rights reserved.
   </footer>
 </div>
 <!-- ./wrapper -->

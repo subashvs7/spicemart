@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Invoice #<?php echo str_pad($order['id'],5,'0',STR_PAD_LEFT); ?> | SpiceMart</title>
+  <title>Invoice #<?php echo str_pad($order['id'],5,'0',STR_PAD_LEFT); ?> | myeoncasuals</title>
   <style>
     body { font-family: Arial, sans-serif; font-size: 13px; color: #333; margin: 0; padding: 20px; }
     .invoice-wrap { max-width: 750px; margin: 0 auto; padding: 30px; border: 1px solid #ddd; }
@@ -33,10 +33,10 @@
 <div class="invoice-wrap">
   <div class="invoice-header">
     <div>
-      <div class="brand-name">🌶️ SpiceMart</div>
-      <div style="color:#888;font-size:12px;margin-top:4px">Pure &amp; Natural Spices</div>
+      <div class="brand-name">🛍️ myeoncasuals</div>
+      <div style="color:#888;font-size:12px;margin-top:4px">Trendy Casual Wear</div>
       <div style="margin-top:10px;font-size:12px;color:#555">
-        123 Spice Bazaar, T. Nagar<br>
+        123 Fashion Street, T. Nagar<br>
         Chennai – 600 017, Tamil Nadu<br>
         GSTIN: 33AABCS1234A1Z5
       </div>
@@ -130,7 +130,7 @@
 
   <div class="footer-note">
     This is a computer-generated invoice and does not require a signature.<br>
-    Thank you for shopping with SpiceMart! For queries: support@spicemart.in
+    Thank you for shopping with myeoncasuals! For queries: support@myeoncasuals.com
   </div>
 </div>
 

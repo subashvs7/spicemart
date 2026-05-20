@@ -5,10 +5,10 @@ $cfg       = isset($app_settings) ? $app_settings : array();
 $site_name = !empty($cfg['site_name'])    ? $cfg['site_name']    : APP_NAME;
 $site_tag  = !empty($cfg['site_tagline']) ? $cfg['site_tagline'] : 'Pure & Natural';
 $top_strip = isset($cfg['top_strip_text']) ? $cfg['top_strip_text']
-             : '🚚 Free shipping on orders above ₹499 | 100% Pure & Natural | Cash on Delivery available';
+             : '🚚 Free shipping on orders above ₹499 | Trendy Styles | Cash on Delivery available';
 $logo_file = !empty($cfg['site_logo']) && file_exists(FCPATH.'uploads/logo/'.$cfg['site_logo'])
              ? base_url('uploads/logo/'.$cfg['site_logo']) : '';
-$meta_title_default = !empty($cfg['meta_title']) ? $cfg['meta_title'] : $site_name . ' – Pure Spices & Masala';
+$meta_title_default = !empty($cfg['meta_title']) ? $cfg['meta_title'] : $site_name . ' – Trendy Casual Wear';
 $meta_desc_default  = !empty($cfg['meta_desc'])  ? $cfg['meta_desc']  : '';
 $ga_id              = !empty($cfg['google_analytics']) ? $cfg['google_analytics'] : '';
 
@@ -64,7 +64,7 @@ if (!empty($all_categories)) {
              alt="<?php echo htmlspecialchars($site_name); ?>"
              style="height:42px;object-fit:contain;max-width:160px">
       <?php else: ?>
-        <span class="brand-icon">🌶️</span>
+        <span class="brand-icon">🛍️</span>
         <div>
           <span class="brand-name"><?php echo htmlspecialchars($site_name); ?></span>
           <span class="brand-tagline d-block"><?php echo htmlspecialchars($site_tag); ?></span>
@@ -169,7 +169,7 @@ if (!empty($all_categories)) {
       <form class="d-flex search-form me-3" action="<?php echo site_url('shop'); ?>" method="get">
         <div class="input-group input-group-sm">
           <input class="form-control" type="search" name="q"
-                 placeholder="Search spices…"
+                 placeholder="Search products…"
                  value="<?php echo htmlspecialchars($this->input->get('q') ?: ''); ?>">
           <button class="btn btn-saffron" type="submit"><i class="bi bi-search"></i></button>
         </div>

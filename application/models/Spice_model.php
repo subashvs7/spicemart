@@ -247,7 +247,7 @@ class Spice_model extends CI_Model {
         if ($filename && file_exists(FCPATH.'uploads/products/'.$filename)) {
             return base_url('uploads/products/'.$filename);
         }
-        return 'https://placehold.co/300x300/f5f0eb/c8956c?text=SpiceMart';
+        return 'https://placehold.co/300x300/f5f0eb/c8956c?text=myeoncasuals';
     }
 
     public function truncate_text($str, $len = 80)

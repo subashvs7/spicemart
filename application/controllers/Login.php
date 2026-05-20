@@ -92,7 +92,7 @@ class Login extends CI_Controller {
                         SESS_HEAD.'_user_role'  => 'customer',
                         SESS_HEAD.'_logged_in'  => TRUE,
                     ));
-                    $this->session->set_flashdata('success', 'Welcome to SpiceMart, '.$name.'!');
+                    $this->session->set_flashdata('success', 'Welcome to myeoncasuals, '.$name.'!');
                     redirect('home');
                 }
             }
