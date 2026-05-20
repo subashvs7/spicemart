@@ -141,8 +141,9 @@ $socials = array(
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  window.CART_AJAX_URL = '<?php echo site_url("cart-ajax"); ?>';
-  window.LOGIN_URL     = '<?php echo site_url("login"); ?>';
+  window.CART_AJAX_URL       = '<?php echo site_url("cart-ajax"); ?>';
+  window.LOGIN_URL           = '<?php echo site_url("login"); ?>';
+  window.WISHLIST_TOGGLE_URL = '<?php echo site_url("wishlist/toggle/"); ?>';
 </script>
 <script src="<?php echo base_url('public/js/main.js'); ?>"></script>
 <?php if (isset($js) && !empty($js)) {

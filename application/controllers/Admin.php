@@ -645,6 +645,141 @@ class Admin extends CI_Controller {
         $this->load->view('inc/footer', $data);
     }
 
+    // ── Why Choose Us ─────────────────────────────────────────────
+
+    public function why_choose_us()
+    {
+        $this->_require_admin();
+        $this->_admin_base($data);
+
+        $errors = array(); $success = ''; $form_data = array();
+
+        if ($this->input->server('REQUEST_METHOD') === 'POST') {
+            $item_id     = (int)$this->input->post('item_id');
+            $icon        = trim($this->input->post('icon') ?: '🌿');
+            $title       = trim($this->input->post('title'));
+            $description = trim($this->input->post('description'));
+            $sort_order  = (int)$this->input->post('sort_order');
+            $status      = (int)$this->input->post('status');
+
+            if (!$title)       $errors[] = 'Title is required.';
+            if (!$description) $errors[] = 'Description is required.';
+
+            if (empty($errors)) {
+                if ($item_id) {
+                    $this->db->query(
+                        'UPDATE why_choose_us SET icon=?,title=?,description=?,sort_order=?,status=? WHERE id=?',
+                        array($icon,$title,$description,$sort_order,$status,$item_id)
+                    );
+                    $success = 'Item updated.';
+                } else {
+                    $this->db->query(
+                        'INSERT INTO why_choose_us (icon,title,description,sort_order,status) VALUES (?,?,?,?,?)',
+                        array($icon,$title,$description,$sort_order,$status)
+                    );
+                    $success = 'Item added.';
+                }
+            } else {
+                $form_data = array(
+                    'id'          => $item_id,
+                    'icon'        => $icon,
+                    'title'       => $title,
+                    'description' => $description,
+                    'sort_order'  => $sort_order,
+                    'status'      => $status,
+                );
+            }
+        }
+
+        $action  = $this->input->get('action') ?: '';
+        $edit_id = (int)$this->input->get('edit');
+        if ($action === 'delete' && $edit_id) {
+            $this->db->query('DELETE FROM why_choose_us WHERE id=?', array($edit_id));
+            redirect('admin-why-choose-us');
+        }
+
+        $items = $this->db->query('SELECT * FROM why_choose_us ORDER BY sort_order, id')->result_array();
+
+        $data['page']      = 'why_choose_us';
+        $data['items']     = $items;
+        $data['errors']    = $errors;
+        $data['success']   = $success;
+        $data['form_data'] = $form_data;
+
+        $this->load->view('inc/header', $data);
+        $this->load->view('inc/left-menu', $data);
+        $this->load->view('page/admin/why_choose_us', $data);
+        $this->load->view('inc/footer', $data);
+    }
+
+    // ── Testimonials ───────────────────────────────────────────────
+
+    public function testimonials()
+    {
+        $this->_require_admin();
+        $this->_admin_base($data);
+
+        $errors = array(); $success = ''; $form_data = array();
+
+        if ($this->input->server('REQUEST_METHOD') === 'POST') {
+            $testimonial_id = (int)$this->input->post('testimonial_id');
+            $customer_name  = trim($this->input->post('customer_name'));
+            $rating         = (int)$this->input->post('rating');
+            $quote          = trim($this->input->post('quote'));
+            $sort_order     = (int)$this->input->post('sort_order');
+            $status         = (int)$this->input->post('status');
+
+            if (!$customer_name) $errors[] = 'Customer name is required.';
+            if (!$quote)         $errors[] = 'Quote is required.';
+            if ($rating < 1 || $rating > 5) $rating = 5;
+
+            if (empty($errors)) {
+                if ($testimonial_id) {
+                    $this->db->query(
+                        'UPDATE testimonials SET customer_name=?,rating=?,quote=?,sort_order=?,status=? WHERE id=?',
+                        array($customer_name,$rating,$quote,$sort_order,$status,$testimonial_id)
+                    );
+                    $success = 'Testimonial updated.';
+                } else {
+                    $this->db->query(
+                        'INSERT INTO testimonials (customer_name,rating,quote,sort_order,status) VALUES (?,?,?,?,?)',
+                        array($customer_name,$rating,$quote,$sort_order,$status)
+                    );
+                    $success = 'Testimonial added.';
+                }
+            } else {
+                $form_data = array(
+                    'id'            => $testimonial_id,
+                    'customer_name' => $customer_name,
+                    'rating'        => $rating,
+                    'quote'         => $quote,
+                    'sort_order'    => $sort_order,
+                    'status'        => $status,
+                );
+            }
+        }
+
+        $action  = $this->input->get('action') ?: '';
+        $edit_id = (int)$this->input->get('edit');
+        if ($action === 'delete' && $edit_id) {
+            $this->db->query('DELETE FROM testimonials WHERE id=?', array($edit_id));
+            redirect('admin-testimonials');
+        }
+
+        $testimonials = $this->db->query('SELECT * FROM testimonials ORDER BY sort_order, id')->result_array();
+
+        $data['page']         = 'testimonials';
+        $data['testimonials'] = $testimonials;
+        $data['errors']       = $errors;
+        $data['success']      = $success;
+        $data['form_data']    = $form_data;
+
+        $this->load->view('inc/header', $data);
+        $this->load->view('inc/left-menu', $data);
+        $this->load->view('page/admin/testimonials', $data);
+        $this->load->view('inc/footer', $data);
+    }
+
     // ── Returns ───────────────────────────────────────────────────
 
     public function returns()

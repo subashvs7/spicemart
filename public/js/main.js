@@ -43,8 +43,11 @@ document.addEventListener('click', function(e) {
   // Double-check here as a safety net.
   if (btn.dataset.hasVariants === '1' && !variantId) return;
 
+  var isIconBtn = btn.dataset.cartIcon === '1';
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Adding…';
+  btn.innerHTML = isIconBtn
+    ? '<span class="spinner-border spinner-border-sm" style="width:.85rem;height:.85rem"></span>'
+    : '<span class="spinner-border spinner-border-sm me-1"></span> Adding…';
   fetch(CART_AJAX_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -64,7 +67,9 @@ document.addEventListener('click', function(e) {
   .catch(function() { showToast('Something went wrong.', 'danger'); })
   .finally(function() {
     btn.disabled = false;
-    btn.innerHTML = '<i class="bi bi-bag-plus me-1"></i> Add to Cart';
+    btn.innerHTML = isIconBtn
+      ? '<i class="bi bi-bag-plus"></i>'
+      : '<i class="bi bi-bag-plus me-1"></i> Add to Cart';
   });
 });
 
@@ -121,6 +126,41 @@ document.addEventListener('click', function(e) {
       if (data.cart_count === 0) location.reload();
     }
   });
+});
+
+// Wishlist toggle
+function updateWishlistBadge(count) {
+  var badge = document.getElementById('wishlistBadge');
+  if (!badge) return;
+  badge.textContent = count;
+  badge.style.display = count > 0 ? 'flex' : 'none';
+}
+
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('[data-wishlist]');
+  if (!btn) return;
+  e.preventDefault();
+  e.stopPropagation();
+  var productId = btn.dataset.wishlist;
+  var url = (window.WISHLIST_TOGGLE_URL || '/wishlist/toggle/') + productId;
+  btn.disabled = true;
+  fetch(url)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.success) {
+        window.location.href = window.LOGIN_URL || '/login';
+        return;
+      }
+      var icon = btn.querySelector('i');
+      if (icon) {
+        icon.classList.toggle('bi-heart',      data.action === 'removed');
+        icon.classList.toggle('bi-heart-fill', data.action === 'added');
+      }
+      updateWishlistBadge(data.wishlist_count);
+      showToast(data.action === 'added' ? 'Added to wishlist!' : 'Removed from wishlist.', data.action === 'added' ? 'success' : 'info');
+    })
+    .catch(function() { showToast('Something went wrong.', 'danger'); })
+    .finally(function() { btn.disabled = false; });
 });
 
 // Sticky navbar

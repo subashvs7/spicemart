@@ -68,6 +68,18 @@
         </a>
       </li>
 
+      <li <?php if ($page === 'why_choose_us') echo 'class="active"'; ?>>
+        <a href="<?php echo site_url('admin-why-choose-us') ?>">
+          <i class="fa fa-check-circle"></i> <span>Why Choose Us</span>
+        </a>
+      </li>
+
+      <li <?php if ($page === 'testimonials') echo 'class="active"'; ?>>
+        <a href="<?php echo site_url('admin-testimonials') ?>">
+          <i class="fa fa-comments"></i> <span>Testimonials</span>
+        </a>
+      </li>
+
       <li <?php if ($page === 'returns') echo 'class="active"'; ?>>
         <a href="<?php echo site_url('admin-returns') ?>">
           <i class="fa fa-undo"></i>

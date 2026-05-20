@@ -49,11 +49,21 @@ class Home extends CI_Controller {
              GROUP BY p.id ORDER BY p.id DESC LIMIT 8'
         )->result_array();
 
-        $data['js']         = 'home.inc';
-        $data['banners']    = $banners;
-        $data['categories'] = $categories;
-        $data['featured']   = $featured;
-        $data['products']   = $products;
+        $why_choose_us = $this->db->query(
+            'SELECT * FROM why_choose_us WHERE status=1 ORDER BY sort_order, id'
+        )->result_array();
+
+        $testimonials = $this->db->query(
+            'SELECT * FROM testimonials WHERE status=1 ORDER BY sort_order, id'
+        )->result_array();
+
+        $data['js']            = 'home.inc';
+        $data['banners']       = $banners;
+        $data['categories']    = $categories;
+        $data['featured']      = $featured;
+        $data['products']      = $products;
+        $data['why_choose_us'] = $why_choose_us;
+        $data['testimonials']  = $testimonials;
 
         $this->load->view('inc/front-header', $data);
         $this->load->view('page/home', $data);

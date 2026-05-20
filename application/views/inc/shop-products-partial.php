@@ -23,6 +23,9 @@
           <?php elseif ($p['stock_qty'] < 20): ?>
             <span class="badge bg-warning text-dark stock-badge">Low Stock</span>
           <?php endif; ?>
+          <button class="btn-wishlist" data-wishlist="<?php echo $p['id']; ?>" title="Add to Wishlist">
+            <i class="bi bi-heart"></i>
+          </button>
         </div>
         <div class="card-body">
           <p class="product-weight mb-1"><?php echo htmlspecialchars($p['cat_name']); ?></p>
