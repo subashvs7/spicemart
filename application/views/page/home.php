@@ -3,7 +3,7 @@
 <!-- ══════════════════════════════════════════════════
      HERO
 ══════════════════════════════════════════════════ -->
-<section class="hero-v2">
+<!-- <section class="hero-v2">
   <div class="hero-v2-particles" aria-hidden="true">
     <span class="hv2-p p1">🌶️</span>
     <span class="hv2-p p2">🌿</span>
@@ -54,7 +54,7 @@
     </div>
   </div>
   <div class="hv2-scroll-hint" aria-hidden="true"><i class="bi bi-chevron-double-down"></i></div>
-</section>
+</section> -->
 
 <!-- ══════════════════════════════════════════════════
      BANNER CAROUSEL
