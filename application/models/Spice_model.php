@@ -104,7 +104,7 @@ class Spice_model extends CI_Model {
 
     // ── Coupon ────────────────────────────────────────────────────
 
-    public function validate_coupon($code, $subtotal)
+    public function validate_coupon($code, $subtotal, $user_id = 0)
     {
         $coupon = $this->db->query(
             'SELECT * FROM coupons WHERE code=? AND status=1', array($code)
@@ -116,10 +116,44 @@ class Spice_model extends CI_Model {
             return array('valid'=>false,'message'=>'This coupon has expired.');
         }
         if ($coupon['uses_limit'] && $coupon['uses_count'] >= $coupon['uses_limit']) {
-            return array('valid'=>false,'message'=>'This coupon usage limit has been reached.');
+            return array('valid'=>false,'message'=>'This coupon has reached its usage limit.');
         }
         if ($subtotal < $coupon['min_order']) {
-            return array('valid'=>false,'message'=>'Minimum order of ₹'.number_format($coupon['min_order'],2).' required.');
+            return array('valid'=>false,'message'=>'Minimum order of ₹'.number_format($coupon['min_order'],2).' required for this coupon.');
+        }
+
+        if ($user_id) {
+            // Per-user usage check
+            if ($coupon['uses_per_user']) {
+                $user_uses = (int)$this->db->query(
+                    'SELECT COUNT(*) AS cnt FROM coupon_usage WHERE coupon_id=? AND user_id=?',
+                    array($coupon['id'], $user_id)
+                )->row()->cnt;
+                if ($user_uses >= (int)$coupon['uses_per_user']) {
+                    return array('valid'=>false,'message'=>'You have already used this coupon the maximum number of times.');
+                }
+            }
+
+            // User-restriction check
+            if ($coupon['restrict_to'] === 'staff') {
+                $role = $this->db->query(
+                    'SELECT role FROM users WHERE id=?', array($user_id)
+                )->row()->role ?? 'customer';
+                if ($role === 'customer') {
+                    return array('valid'=>false,'message'=>'This coupon is for staff/alumni only.');
+                }
+            } elseif ($coupon['restrict_to'] === 'specific') {
+                $email = $this->db->query(
+                    'SELECT email FROM users WHERE id=?', array($user_id)
+                )->row()->email ?? '';
+                $allowed = $this->db->query(
+                    'SELECT id FROM coupon_users WHERE coupon_id=? AND user_email=?',
+                    array($coupon['id'], $email)
+                )->row();
+                if (!$allowed) {
+                    return array('valid'=>false,'message'=>'This coupon is not available for your account.');
+                }
+            }
         }
 
         if ($coupon['type'] === 'percent') {
@@ -131,12 +165,48 @@ class Spice_model extends CI_Model {
         $discount = round($discount, 2);
 
         return array(
-            'valid'    => true,
-            'type'     => $coupon['type'],
-            'value'    => $coupon['value'],
-            'discount' => $discount,
-            'message'  => '',
+            'valid'     => true,
+            'coupon_id' => (int)$coupon['id'],
+            'type'      => $coupon['type'],
+            'value'     => $coupon['value'],
+            'discount'  => $discount,
+            'message'   => 'Coupon applied! You save ₹'.number_format($discount, 2),
         );
+    }
+
+    // ── Loyalty ───────────────────────────────────────────────────
+
+    public function add_loyalty_points($user_id, $points, $type = 'earned', $ref_type = 'order', $ref_id = null, $note = null)
+    {
+        $this->db->query(
+            'INSERT INTO loyalty_ledger (user_id,points,type,ref_type,ref_id,note) VALUES (?,?,?,?,?,?)',
+            array($user_id, $points, $type, $ref_type, $ref_id, $note)
+        );
+
+        if ($points >= 0) {
+            $this->db->query(
+                'INSERT INTO user_loyalty (user_id,points_balance,points_earned) VALUES (?,?,?)
+                 ON DUPLICATE KEY UPDATE points_balance=points_balance+?, points_earned=points_earned+?',
+                array($user_id, $points, $points, $points, $points)
+            );
+        } else {
+            $this->db->query(
+                'INSERT INTO user_loyalty (user_id,points_balance,points_redeemed) VALUES (?,0,?)
+                 ON DUPLICATE KEY UPDATE points_balance=GREATEST(0,points_balance+?), points_redeemed=points_redeemed+?',
+                array($user_id, abs($points), $points, abs($points))
+            );
+        }
+
+        // Recalculate tier
+        $earned = (int)($this->db->query('SELECT points_earned FROM user_loyalty WHERE user_id=?', array($user_id))->row()->points_earned ?? 0);
+        $tier = $earned >= 5000 ? 'platinum' : ($earned >= 2000 ? 'gold' : ($earned >= 500 ? 'silver' : 'bronze'));
+        $this->db->query('UPDATE user_loyalty SET tier=? WHERE user_id=?', array($tier, $user_id));
+    }
+
+    public function get_loyalty_balance($user_id)
+    {
+        $row = $this->db->query('SELECT * FROM user_loyalty WHERE user_id=?', array($user_id))->row_array();
+        return $row ?: array('points_balance'=>0,'points_earned'=>0,'points_redeemed'=>0,'tier'=>'bronze','birthday'=>null);
     }
 
     // ── Shipping ──────────────────────────────────────────────────

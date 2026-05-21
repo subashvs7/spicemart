@@ -37,7 +37,7 @@
             </thead>
             <tbody>
               <?php foreach ($orders as $o): ?>
-              <tr <?php echo ($view_order && $view_order['id'] === (int)$o['id']) ? 'class="warning"' : ''; ?>>
+              <tr data-order-id="<?php echo $o['id']; ?>" <?php echo ($view_order && $view_order['id'] === (int)$o['id']) ? 'class="warning"' : ''; ?>>
                 <td><strong>#<?php echo str_pad($o['id'],5,'0',STR_PAD_LEFT); ?></strong></td>
                 <td><?php echo htmlspecialchars($o['customer_name']); ?></td>
                 <td><?php echo $o['item_count']; ?></td>
@@ -76,7 +76,7 @@
       <div class="box-body">
 
         <!-- Status Update Form -->
-        <form method="post" action="<?php echo site_url('admin-orders').'?view='.$view_order['id'].($filter_status ? '&amp;status='.$filter_status : ''); ?>" class="margin-b-15">
+        <form id="orderUpdateForm" method="post" action="<?php echo site_url('ajax/orders-update'); ?>" class="margin-b-15">
           <input type="hidden" name="order_id" value="<?php echo $view_order['id']; ?>">
           <div class="form-group">
             <label class="text-muted small">Order Status</label>
@@ -173,6 +173,26 @@
         <!-- Meta -->
         <div class="text-muted small">
           Placed: <?php echo date('d M Y, h:i A', strtotime($view_order['created_at'])); ?>
+        </div>
+
+        <?php
+        $order_pts = $this->db->query(
+            "SELECT SUM(points) AS pts FROM loyalty_ledger WHERE ref_type='order' AND ref_id=? AND type='earned'",
+            array($view_order['id'])
+        )->row()->pts;
+        $earn_per  = (int)($this->spice_model->get_setting('loyalty_earn_per')  ?: 10);
+        $earn_rate = (int)($this->spice_model->get_setting('loyalty_earn_rate') ?: 1);
+        $will_earn = ($earn_per > 0) ? (int)floor(((float)$view_order['total_amount'] / $earn_per) * $earn_rate) : 0;
+        ?>
+        <div class="callout callout-warning margin-t-10" style="padding:8px 12px">
+          <i class="fa fa-star text-warning"></i>
+          <?php if ($order_pts > 0): ?>
+            <strong><?php echo (int)$order_pts; ?> loyalty points</strong> awarded to customer.
+          <?php elseif ($view_order['status'] === 'delivered'): ?>
+            <span class="text-muted">Points check: none recorded for this order.</span>
+          <?php else: ?>
+            Customer will earn <strong><?php echo $will_earn; ?> points</strong> on delivery.
+          <?php endif; ?>
         </div>
 
         <a href="<?php echo site_url('invoice/'.$view_order['id']); ?>" target="_blank"

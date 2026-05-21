@@ -141,6 +141,45 @@ $socials = array(
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+/* ── Global: auto-dismiss Bootstrap 5 alerts after 3 seconds ── */
+(function () {
+  function smDismiss(el) {
+    setTimeout(function () {
+      el.style.transition = 'opacity .4s, max-height .3s';
+      el.style.opacity    = '0';
+      el.style.overflow   = 'hidden';
+      setTimeout(function () { el.style.maxHeight = '0'; el.style.marginBottom = '0'; }, 400);
+      setTimeout(function () { el.remove(); }, 700);
+    }, 3000);
+  }
+  function scanAndDismiss(root) {
+    (root || document).querySelectorAll('.alert:not(.alert-permanent)').forEach(smDismiss);
+  }
+  document.addEventListener('DOMContentLoaded', function () { scanAndDismiss(); });
+  new MutationObserver(function (muts) {
+    muts.forEach(function (m) {
+      m.addedNodes.forEach(function (n) {
+        if (n.nodeType !== 1) return;
+        if (n.classList && n.classList.contains('alert') && !n.classList.contains('alert-permanent')) smDismiss(n);
+        n.querySelectorAll && n.querySelectorAll('.alert:not(.alert-permanent)').forEach(smDismiss);
+      });
+    });
+  }).observe(document.body, { childList: true, subtree: true });
+})();
+
+/* ── Global: show a floating alert banner ── */
+function smAlert(msg, type) {
+  type = type || 'success';
+  var icon = type === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle';
+  var el = document.createElement('div');
+  el.className = 'alert alert-' + type + ' alert-dismissible fade show';
+  el.innerHTML = '<i class="bi ' + icon + ' me-2"></i>' + msg +
+    '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+  var c = document.querySelector('.container');
+  if (c) c.insertBefore(el, c.firstChild);
+}
+</script>
+<script>
   window.CART_AJAX_URL       = '<?php echo site_url("cart-ajax"); ?>';
   window.LOGIN_URL           = '<?php echo site_url("login"); ?>';
   window.WISHLIST_TOGGLE_URL = '<?php echo site_url("wishlist/toggle/"); ?>';

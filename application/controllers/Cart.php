@@ -116,13 +116,15 @@ class Cart extends CI_Controller {
         $code     = strtoupper(trim($input['code'] ?? ''));
         $subtotal = (float)($input['subtotal'] ?? 0);
 
-        $result = $this->spice_model->validate_coupon($code, $subtotal);
+        $user_id = (int)$this->session->userdata(SESS_HEAD.'_user_id');
+        $result  = $this->spice_model->validate_coupon($code, $subtotal, $user_id);
         if ($result['valid']) {
             $this->session->set_userdata(SESS_HEAD.'_coupon', array(
-                'code'     => $code,
-                'type'     => $result['type'],
-                'value'    => $result['value'],
-                'discount' => $result['discount'],
+                'code'      => $code,
+                'coupon_id' => $result['coupon_id'],
+                'type'      => $result['type'],
+                'value'     => $result['value'],
+                'discount'  => $result['discount'],
             ));
             echo json_encode(array('success'=>true,'discount'=>$result['discount'],'message'=>'Coupon applied! You saved ₹'.number_format($result['discount'],2)));
         } else {
@@ -154,15 +156,39 @@ class Cart extends CI_Controller {
 
         $coupon   = $this->session->userdata(SESS_HEAD.'_coupon') ?: array();
         $discount = isset($coupon['discount']) ? (float)$coupon['discount'] : 0;
-        $shipping = $this->spice_model->get_shipping_charge($subtotal - $discount);
-        $total    = $subtotal - $discount + $shipping;
+
+        $fazaa_sess     = $this->session->userdata(SESS_HEAD.'_fazaa') ?: array();
+        $fazaa_discount = 0;
+        if (!empty($fazaa_sess['discount_pct'])) {
+            $raw = round(($subtotal - $discount) * ((float)$fazaa_sess['discount_pct'] / 100), 2);
+            $fazaa_discount = min($raw, (float)($fazaa_sess['max_discount'] ?? PHP_INT_MAX));
+        }
+
+        $shipping = $this->spice_model->get_shipping_charge($subtotal - $discount - $fazaa_discount);
+        $total    = $subtotal - $discount - $fazaa_discount + $shipping;
 
         $addresses = $this->db->query(
             'SELECT * FROM addresses WHERE user_id=? ORDER BY is_default DESC', array($user_id)
         )->result_array();
 
         $razorpay_key = $this->spice_model->get_setting('razorpay_key_id');
-        $errors       = array();
+
+        // Load payment method toggles from shipping_settings
+        $ps_raw = $this->db->query(
+            "SELECT key_name, key_value FROM shipping_settings WHERE key_name LIKE 'payment_%'"
+        )->result_array();
+        $pay_settings = array(
+            'payment_cod_enabled'        => '1',
+            'payment_razorpay_enabled'   => '1',
+            'payment_cards_enabled'      => '1',
+            'payment_netbanking_enabled' => '1',
+            'payment_wallets_enabled'    => '1',
+            'payment_upi_enabled'        => '1',
+            'payment_applepay_enabled'   => '0',
+        );
+        foreach ($ps_raw as $r) $pay_settings[$r['key_name']] = $r['key_value'];
+
+        $errors = array();
 
         if ($this->input->server('REQUEST_METHOD') === 'POST') {
             // collect address
@@ -195,7 +221,14 @@ class Cart extends CI_Controller {
                 }
             }
 
-            $payment_method = $this->input->post('payment_method') ?: 'cod';
+            $payment_method_raw = $this->input->post('payment_method') ?: 'cod';
+            $payment_method     = (strpos($payment_method_raw, 'razorpay') === 0) ? 'razorpay' : $payment_method_raw;
+            $rzp_payment_id     = trim($this->input->post('rzp_payment_id') ?: '');
+
+            // Razorpay requires a completed payment before we create the order
+            if ($payment_method === 'razorpay' && !$rzp_payment_id) {
+                $errors[] = 'Please complete the online payment to proceed.';
+            }
 
             // Stock check
             foreach ($items as $it) {
@@ -210,14 +243,18 @@ class Cart extends CI_Controller {
             if (empty($errors)) {
                 $this->db->trans_start();
 
+                $pay_status = ($payment_method === 'razorpay' && $rzp_payment_id) ? 'paid' : 'pending';
+                $txn_id     = ($payment_method === 'razorpay') ? $rzp_payment_id : '';
+
                 $this->db->query(
-                    'INSERT INTO orders (user_id,total_amount,shipping_charge,coupon_code,coupon_discount,shipping_address,payment_method,payment_status)
-                     VALUES (?,?,?,?,?,?,?,?)',
+                    'INSERT INTO orders (user_id,total_amount,shipping_charge,coupon_code,coupon_discount,fazaa_program,fazaa_member_no,fazaa_discount,shipping_address,payment_method,payment_status,transaction_id)
+                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
                     array(
                         $user_id, $total, $shipping,
                         $coupon['code'] ?? '', $discount,
+                        $fazaa_sess['program'] ?? null, $fazaa_sess['member_no'] ?? null, $fazaa_discount,
                         $shipping_address, $payment_method,
-                        $payment_method === 'cod' ? 'pending' : 'pending',
+                        $pay_status, $txn_id,
                     )
                 );
                 $order_id = $this->db->insert_id();
@@ -234,10 +271,35 @@ class Cart extends CI_Controller {
                     );
                 }
 
-                // Increment coupon usage
+                // Increment global coupon usage + record per-user usage
                 if (!empty($coupon['code'])) {
                     $this->db->query(
                         'UPDATE coupons SET uses_count=uses_count+1 WHERE code=?', array($coupon['code'])
+                    );
+                    if (!empty($coupon['coupon_id'])) {
+                        $this->db->query(
+                            'INSERT INTO coupon_usage (coupon_id,user_id,order_id) VALUES (?,?,?)',
+                            array($coupon['coupon_id'], $user_id, $order_id)
+                        );
+                    }
+                }
+
+                // Award loyalty points for this order
+                $earn_per  = (float)$this->spice_model->get_setting('loyalty_earn_per')  ?: 10;
+                $earn_rate = (float)$this->spice_model->get_setting('loyalty_earn_rate') ?: 1;
+                $pts = (int)floor(($total / $earn_per) * $earn_rate);
+                if ($pts > 0) {
+                    $this->spice_model->add_loyalty_points(
+                        $user_id, $pts, 'earned', 'order', $order_id,
+                        'Order #'.str_pad($order_id, 5, '0', STR_PAD_LEFT)
+                    );
+                }
+
+                // Track Fazaa/Isaad usage
+                if ($fazaa_discount > 0 && !empty($fazaa_sess['program'])) {
+                    $this->db->query(
+                        'INSERT INTO fazaa_usages (program,member_no,user_id,order_id,discount_pct,discount_amt,order_total,verified_at) VALUES (?,?,?,?,?,?,?,NOW())',
+                        array($fazaa_sess['program'], $fazaa_sess['member_no'], $user_id, $order_id, $fazaa_sess['discount_pct'], $fazaa_discount, $total)
                     );
                 }
 
@@ -246,6 +308,7 @@ class Cart extends CI_Controller {
                 if ($this->db->trans_status()) {
                     $this->spice_model->clear_cart();
                     $this->session->unset_userdata(SESS_HEAD.'_coupon');
+                    $this->session->unset_userdata(SESS_HEAD.'_fazaa');
                     redirect('order-success/'.$order_id);
                 } else {
                     $errors[] = 'Order failed. Please try again.';
@@ -253,16 +316,24 @@ class Cart extends CI_Controller {
             }
         }
 
-        $data['js']          = 'checkout.inc';
-        $data['items']       = $items;
-        $data['subtotal']    = $subtotal;
-        $data['discount']    = $discount;
-        $data['coupon']      = $coupon;
-        $data['shipping']    = $shipping;
-        $data['total']       = $total;
-        $data['addresses']   = $addresses;
-        $data['razorpay_key']= $razorpay_key;
-        $data['errors']      = $errors;
+        $fazaa_programs = $this->db->query(
+            'SELECT program, label, discount_pct, max_discount, min_order FROM fazaa_settings WHERE enabled=1 ORDER BY id'
+        )->result_array();
+
+        $data['js']              = 'checkout.inc';
+        $data['items']           = $items;
+        $data['subtotal']        = $subtotal;
+        $data['discount']        = $discount;
+        $data['coupon']          = $coupon;
+        $data['fazaa_programs']  = $fazaa_programs;
+        $data['fazaa_sess']      = $fazaa_sess;
+        $data['fazaa_discount']  = $fazaa_discount;
+        $data['shipping']        = $shipping;
+        $data['total']           = $total;
+        $data['addresses']       = $addresses;
+        $data['razorpay_key']    = $razorpay_key;
+        $data['pay_settings']    = $pay_settings;
+        $data['errors']          = $errors;
 
         $this->load->view('inc/front-header', $data);
         $this->load->view('page/checkout', $data);

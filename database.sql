@@ -96,6 +96,9 @@ CREATE TABLE orders (
     shipping_charge  DECIMAL(10,2) DEFAULT 0.00,
     coupon_code      VARCHAR(50)   DEFAULT NULL,
     coupon_discount  DECIMAL(10,2) DEFAULT 0.00,
+    fazaa_program    VARCHAR(10)   DEFAULT NULL,
+    fazaa_member_no  VARCHAR(50)   DEFAULT NULL,
+    fazaa_discount   DECIMAL(10,2) DEFAULT 0.00,
     shipping_address TEXT          NOT NULL,
     payment_method   ENUM('cod','razorpay','payu','wallet') NOT NULL DEFAULT 'cod',
     payment_status   ENUM('pending','paid','failed','refunded') DEFAULT 'pending',
@@ -166,17 +169,92 @@ CREATE TABLE reviews (
 
 -- ── coupons ──────────────────────────────────────────────────
 CREATE TABLE coupons (
-    id           INT UNSIGNED  AUTO_INCREMENT PRIMARY KEY,
-    code         VARCHAR(50)   NOT NULL UNIQUE,
-    type         ENUM('percent','flat') NOT NULL DEFAULT 'percent',
-    value        DECIMAL(10,2) NOT NULL,
-    min_order    DECIMAL(10,2) DEFAULT 0.00,
-    max_discount DECIMAL(10,2) DEFAULT NULL,
-    uses_limit   INT           DEFAULT NULL,
-    uses_count   INT           DEFAULT 0,
-    expires_at   DATE          DEFAULT NULL,
-    status       TINYINT(1)    DEFAULT 1,
-    created_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+    id            INT UNSIGNED  AUTO_INCREMENT PRIMARY KEY,
+    code          VARCHAR(50)   NOT NULL UNIQUE,
+    type          ENUM('percent','flat') NOT NULL DEFAULT 'percent',
+    value         DECIMAL(10,2) NOT NULL,
+    min_order     DECIMAL(10,2) DEFAULT 0.00,
+    max_discount  DECIMAL(10,2) DEFAULT NULL,
+    uses_limit    INT           DEFAULT NULL,
+    uses_count    INT           DEFAULT 0,
+    uses_per_user INT           DEFAULT NULL,
+    restrict_to   ENUM('all','staff','specific') DEFAULT 'all',
+    expires_at    DATE          DEFAULT NULL,
+    status        TINYINT(1)    DEFAULT 1,
+    created_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- ── coupon_users (email allow-list for specific-user coupons) ──
+CREATE TABLE coupon_users (
+    id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    coupon_id  INT UNSIGNED NOT NULL,
+    user_email VARCHAR(150) NOT NULL,
+    UNIQUE KEY uq_coupon_user (coupon_id, user_email)
+) ENGINE=InnoDB;
+
+-- ── coupon_usage (per-user usage tracking) ────────────────────
+CREATE TABLE coupon_usage (
+    id        INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    coupon_id INT UNSIGNED NOT NULL,
+    user_id   INT UNSIGNED NOT NULL,
+    order_id  INT UNSIGNED NOT NULL,
+    used_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_coupon_user (coupon_id, user_id)
+) ENGINE=InnoDB;
+
+-- ── user_loyalty (points balance + tier per customer) ────────
+CREATE TABLE user_loyalty (
+    user_id         INT UNSIGNED NOT NULL PRIMARY KEY,
+    points_balance  INT          NOT NULL DEFAULT 0,
+    points_earned   INT          NOT NULL DEFAULT 0,
+    points_redeemed INT          NOT NULL DEFAULT 0,
+    tier            ENUM('bronze','silver','gold','platinum') DEFAULT 'bronze',
+    birthday        DATE         DEFAULT NULL,
+    updated_at      TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- ── loyalty_ledger (every points transaction) ─────────────────
+CREATE TABLE loyalty_ledger (
+    id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id    INT UNSIGNED NOT NULL,
+    points     INT          NOT NULL,
+    type       ENUM('earned','redeemed','expired','bonus','adjusted') DEFAULT 'earned',
+    ref_type   ENUM('order','redemption','admin','campaign','expiry') DEFAULT 'order',
+    ref_id     INT UNSIGNED DEFAULT NULL,
+    note       VARCHAR(255) DEFAULT NULL,
+    created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_ll_user (user_id)
+) ENGINE=InnoDB;
+
+-- ── campaigns (promotion campaigns) ──────────────────────────
+CREATE TABLE campaigns (
+    id            INT UNSIGNED  AUTO_INCREMENT PRIMARY KEY,
+    name          VARCHAR(150)  NOT NULL,
+    type          ENUM('general','birthday','anniversary','festival') DEFAULT 'general',
+    description   TEXT          DEFAULT NULL,
+    offer_type    ENUM('points_bonus','percent_off','flat_off','free_shipping') DEFAULT 'points_bonus',
+    offer_value   DECIMAL(10,2) DEFAULT 0,
+    coupon_code   VARCHAR(50)   DEFAULT NULL,
+    target        ENUM('all','new','frequent','highvalue','inactive') DEFAULT 'all',
+    festival_date DATE          DEFAULT NULL,
+    trigger_days  INT           DEFAULT 0,
+    start_date    DATE          DEFAULT NULL,
+    end_date      DATE          DEFAULT NULL,
+    message       TEXT          DEFAULT NULL,
+    status        ENUM('draft','active','paused','completed') DEFAULT 'draft',
+    sent_count    INT           DEFAULT 0,
+    created_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- ── campaign_logs (tracks delivery per user) ──────────────────
+CREATE TABLE campaign_logs (
+    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    campaign_id INT UNSIGNED NOT NULL,
+    user_id     INT UNSIGNED NOT NULL,
+    status      ENUM('sent','converted') DEFAULT 'sent',
+    sent_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_cl_campaign (campaign_id),
+    KEY idx_cl_user (user_id)
 ) ENGINE=InnoDB;
 
 -- ── returns ──────────────────────────────────────────────────
@@ -186,9 +264,78 @@ CREATE TABLE returns (
     user_id    INT UNSIGNED NOT NULL,
     type       ENUM('cancel','return') NOT NULL DEFAULT 'cancel',
     reason     TEXT         NOT NULL,
-    status     ENUM('pending','approved','rejected') DEFAULT 'pending',
+    status     ENUM('pending','approved','rejected','resolved') DEFAULT 'pending',
     admin_note TEXT         DEFAULT NULL,
     created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- ── pos_api_keys ──────────────────────────────────────────────
+CREATE TABLE pos_api_keys (
+    id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    label        VARCHAR(100) NOT NULL,
+    api_key      VARCHAR(64)  NOT NULL UNIQUE,
+    pos_system   VARCHAR(80)  DEFAULT NULL,
+    sync_stock   TINYINT(1)   DEFAULT 1,
+    sync_price   TINYINT(1)   DEFAULT 1,
+    sync_coupon  TINYINT(1)   DEFAULT 1,
+    sync_avail   TINYINT(1)   DEFAULT 1,
+    last_sync_at TIMESTAMP    DEFAULT NULL,
+    status       TINYINT(1)   DEFAULT 1,
+    created_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- ── pos_sync_logs ─────────────────────────────────────────────
+CREATE TABLE pos_sync_logs (
+    id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    api_key_id       INT UNSIGNED DEFAULT NULL,
+    sync_type        ENUM('stock','price','coupon','availability','full') NOT NULL,
+    source           ENUM('webhook','manual','scheduled') DEFAULT 'webhook',
+    records_sent     INT UNSIGNED DEFAULT 0,
+    records_updated  INT UNSIGNED DEFAULT 0,
+    records_failed   INT UNSIGNED DEFAULT 0,
+    status           ENUM('running','success','failed','partial') DEFAULT 'running',
+    request_ip       VARCHAR(45)  DEFAULT NULL,
+    payload_summary  TEXT         DEFAULT NULL,
+    error_message    TEXT         DEFAULT NULL,
+    started_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    completed_at     TIMESTAMP    DEFAULT NULL,
+    KEY idx_psl_type   (sync_type),
+    KEY idx_psl_status (status),
+    KEY idx_psl_key    (api_key_id)
+) ENGINE=InnoDB;
+
+-- ── fazaa_settings ───────────────────────────────────────────
+CREATE TABLE fazaa_settings (
+    id           INT UNSIGNED  AUTO_INCREMENT PRIMARY KEY,
+    program      VARCHAR(10)   NOT NULL,
+    label        VARCHAR(60)   NOT NULL,
+    enabled      TINYINT(1)    DEFAULT 1,
+    discount_pct DECIMAL(5,2)  DEFAULT 10.00,
+    max_discount DECIMAL(10,2) DEFAULT 100.00,
+    min_order    DECIMAL(10,2) DEFAULT 0.00,
+    api_url      VARCHAR(255)  DEFAULT NULL,
+    api_key      VARCHAR(255)  DEFAULT NULL,
+    otp_enabled  TINYINT(1)    DEFAULT 0,
+    logo_url     VARCHAR(255)  DEFAULT NULL,
+    created_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_program (program)
+) ENGINE=InnoDB;
+
+-- ── fazaa_usages ──────────────────────────────────────────────
+CREATE TABLE fazaa_usages (
+    id           INT UNSIGNED  AUTO_INCREMENT PRIMARY KEY,
+    program      VARCHAR(10)   NOT NULL,
+    member_no    VARCHAR(50)   NOT NULL,
+    user_id      INT UNSIGNED  DEFAULT NULL,
+    order_id     INT UNSIGNED  DEFAULT NULL,
+    discount_pct DECIMAL(5,2)  NOT NULL,
+    discount_amt DECIMAL(10,2) NOT NULL,
+    order_total  DECIMAL(10,2) NOT NULL,
+    verified_at  DATETIME      DEFAULT NULL,
+    created_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_fu_program  (program),
+    KEY idx_fu_user     (user_id),
+    KEY idx_fu_order    (order_id)
 ) ENGINE=InnoDB;
 
 -- ── banners ──────────────────────────────────────────────────
@@ -531,6 +678,16 @@ INSERT INTO shipping_settings (key_name, key_value) VALUES
 ('razorpay_key_secret', 'placeholder_secret'),
 ('estimated_days',      '3-5');
 
+-- Loyalty Settings (1 point per ₹10 spent; 100 points = ₹10 discount; min 100 to redeem; expire in 365 days)
+INSERT INTO shipping_settings (key_name, key_value) VALUES
+('loyalty_earn_rate',   '1'),
+('loyalty_earn_per',    '10'),
+('loyalty_redeem_rate', '100'),
+('loyalty_redeem_value','10'),
+('loyalty_min_redeem',  '100'),
+('loyalty_expiry_days', '365')
+ON DUPLICATE KEY UPDATE key_value = VALUES(key_value);
+
 -- Banners
 INSERT INTO banners (title, subtitle, image, link_url, btn_text, type, sort_order, status) VALUES
 ('New Arrivals This Season', 'Fresh styles for men and women — crafted for comfort and class', 'banner1.svg', 'shop',               'Shop Now',  'slider', 1, 1),
@@ -557,3 +714,9 @@ INSERT INTO testimonials (customer_name, rating, quote, sort_order, status) VALU
 ('Rahul Mehta',   5, 'Best online fashion store I have tried. The Oxford shirt exceeded my expectations — great stitching and premium feel.',          2, 1),
 ('Ananya Singh',  4, 'Beautiful collection and quick delivery. The floral dress was exactly as shown. Packaging was also very neat and clean.',         3, 1),
 ('Vikram Reddy',  5, 'myeoncasuals never disappoints. The tote bag I ordered is stunning — so spacious and looks very premium. Highly recommended!',   4, 1);
+
+-- Fazaa / Isaad Settings
+INSERT INTO fazaa_settings (program, label, enabled, discount_pct, max_discount, min_order, otp_enabled) VALUES
+('fazaa', 'Fazaa',  1, 10.00, 100.00, 0.00, 0),
+('isaad', 'Isaad',  1, 10.00, 100.00, 0.00, 0)
+ON DUPLICATE KEY UPDATE label = VALUES(label);

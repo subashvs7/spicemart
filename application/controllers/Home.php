@@ -152,16 +152,28 @@ class Home extends CI_Controller {
             )->result_array();
         }
 
-        $data['js']          = 'account.inc';
-        $data['tab']         = $tab;
-        $data['user']        = $user;
-        $data['errors']      = $errors;
-        $data['success']     = $success;
-        $data['orders']      = $orders;
-        $data['orderDetail'] = $orderDetail;
-        $data['orderItems']  = $orderItems;
-        $data['addresses']   = $addresses;
-        $data['wishlist']    = $wishlist;
+        // Loyalty data — always load balance for sidebar display
+        $loyalty = $this->spice_model->get_loyalty_balance($user_id);
+        $loyalty_history = array();
+        if ($tab === 'loyalty') {
+            $loyalty_history = $this->db->query(
+                'SELECT * FROM loyalty_ledger WHERE user_id=? ORDER BY created_at DESC LIMIT 30',
+                array($user_id)
+            )->result_array();
+        }
+
+        $data['js']             = 'account.inc';
+        $data['tab']            = $tab;
+        $data['user']           = $user;
+        $data['errors']         = $errors;
+        $data['success']        = $success;
+        $data['orders']         = $orders;
+        $data['orderDetail']    = $orderDetail;
+        $data['orderItems']     = $orderItems;
+        $data['addresses']      = $addresses;
+        $data['wishlist']       = $wishlist;
+        $data['loyalty']        = $loyalty;
+        $data['loyalty_history']= $loyalty_history;
 
         $this->load->view('inc/front-header', $data);
         $this->load->view('page/account', $data);

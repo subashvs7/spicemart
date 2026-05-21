@@ -396,6 +396,25 @@ class Admin extends CI_Controller {
             );
             if ($status === 'delivered') {
                 $this->db->query("UPDATE orders SET payment_status='paid' WHERE id=? AND payment_method='cod'", array($order_id));
+                // Auto-award loyalty points (only once per order)
+                $already = $this->db->query(
+                    "SELECT id FROM loyalty_ledger WHERE ref_type='order' AND ref_id=? AND type='earned' LIMIT 1",
+                    array($order_id)
+                )->row();
+                if (!$already) {
+                    $ord = $this->db->query('SELECT user_id, total_amount FROM orders WHERE id=?', array($order_id))->row_array();
+                    $earn_rate = (int)($this->spice_model->get_setting('loyalty_earn_rate') ?: 1);
+                    $earn_per  = (int)($this->spice_model->get_setting('loyalty_earn_per')  ?: 10);
+                    if ($earn_per > 0 && $ord) {
+                        $pts = (int)floor(((float)$ord['total_amount'] / $earn_per) * $earn_rate);
+                        if ($pts > 0) {
+                            $this->spice_model->add_loyalty_points(
+                                $ord['user_id'], $pts, 'earned', 'order', $order_id,
+                                'Earned on Order #'.str_pad($order_id, 5, '0', STR_PAD_LEFT)
+                            );
+                        }
+                    }
+                }
             }
             $success = 'Order updated.';
         }
@@ -500,32 +519,50 @@ class Admin extends CI_Controller {
         $errors = array(); $success = '';
 
         if ($this->input->server('REQUEST_METHOD') === 'POST') {
-            $coupon_id   = (int)$this->input->post('coupon_id');
-            $code        = strtoupper(trim($this->input->post('code') ?: ''));
-            $type        = $this->input->post('type');
-            $value       = (float)$this->input->post('value');
-            $min_order   = (float)$this->input->post('min_order') ?: 0;
-            $max_discount= (float)$this->input->post('max_discount') ?: null;
-            $uses_limit  = (int)$this->input->post('uses_limit') ?: null;
-            $expires_at  = $this->input->post('expires_at') ?: null;
-            $status      = (int)$this->input->post('status');
+            $coupon_id    = (int)$this->input->post('coupon_id');
+            $code         = strtoupper(trim($this->input->post('code') ?: ''));
+            $type         = $this->input->post('type');
+            $value        = (float)$this->input->post('value');
+            $min_order    = (float)$this->input->post('min_order') ?: 0;
+            $max_discount = (float)$this->input->post('max_discount') ?: null;
+            $uses_limit   = (int)$this->input->post('uses_limit') ?: null;
+            $uses_per_user= (int)$this->input->post('uses_per_user') ?: null;
+            $restrict_to  = $this->input->post('restrict_to') ?: 'all';
+            $expires_at   = $this->input->post('expires_at') ?: null;
+            $status       = (int)$this->input->post('status');
+            $allowed_emails_raw = trim($this->input->post('allowed_emails') ?: '');
 
-            if (!$code)   $errors[] = 'Coupon code is required.';
-            if ($value<=0)$errors[] = 'Value must be greater than 0.';
+            if (!$code)    $errors[] = 'Coupon code is required.';
+            if ($value<=0) $errors[] = 'Value must be greater than 0.';
 
             if (empty($errors)) {
                 if ($coupon_id) {
                     $this->db->query(
-                        'UPDATE coupons SET code=?,type=?,value=?,min_order=?,max_discount=?,uses_limit=?,expires_at=?,status=? WHERE id=?',
-                        array($code,$type,$value,$min_order,$max_discount,$uses_limit,$expires_at,$status,$coupon_id)
+                        'UPDATE coupons SET code=?,type=?,value=?,min_order=?,max_discount=?,uses_limit=?,uses_per_user=?,restrict_to=?,expires_at=?,status=? WHERE id=?',
+                        array($code,$type,$value,$min_order,$max_discount,$uses_limit,$uses_per_user,$restrict_to,$expires_at,$status,$coupon_id)
                     );
                     $success = 'Coupon updated.';
                 } else {
                     $this->db->query(
-                        'INSERT INTO coupons (code,type,value,min_order,max_discount,uses_limit,expires_at,status) VALUES (?,?,?,?,?,?,?,?)',
-                        array($code,$type,$value,$min_order,$max_discount,$uses_limit,$expires_at,$status)
+                        'INSERT INTO coupons (code,type,value,min_order,max_discount,uses_limit,uses_per_user,restrict_to,expires_at,status) VALUES (?,?,?,?,?,?,?,?,?,?)',
+                        array($code,$type,$value,$min_order,$max_discount,$uses_limit,$uses_per_user,$restrict_to,$expires_at,$status)
                     );
+                    $coupon_id = $this->db->insert_id();
                     $success = 'Coupon created.';
+                }
+
+                // Sync coupon_users allow-list
+                $this->db->query('DELETE FROM coupon_users WHERE coupon_id=?', array($coupon_id));
+                if ($restrict_to === 'specific' && $allowed_emails_raw) {
+                    $emails = array_unique(array_filter(array_map('trim', preg_split('/[\r\n,]+/', $allowed_emails_raw))));
+                    foreach ($emails as $em) {
+                        if (filter_var($em, FILTER_VALIDATE_EMAIL)) {
+                            $this->db->query(
+                                'INSERT IGNORE INTO coupon_users (coupon_id,user_email) VALUES (?,?)',
+                                array($coupon_id, strtolower($em))
+                            );
+                        }
+                    }
                 }
             }
         }
@@ -534,10 +571,21 @@ class Admin extends CI_Controller {
         $edit_id = (int)$this->input->get('edit');
         if ($action === 'delete' && $edit_id) {
             $this->db->query('DELETE FROM coupons WHERE id=?', array($edit_id));
+            $this->db->query('DELETE FROM coupon_users WHERE coupon_id=?', array($edit_id));
             redirect('admin-coupons');
         }
 
         $coupons = $this->db->query('SELECT * FROM coupons ORDER BY created_at DESC')->result_array();
+
+        // Attach allowed email list to each coupon for the edit modal
+        $cu_raw = $this->db->query(
+            'SELECT coupon_id, GROUP_CONCAT(user_email ORDER BY user_email SEPARATOR "\n") AS emails
+             FROM coupon_users GROUP BY coupon_id'
+        )->result_array();
+        $cu_map = array();
+        foreach ($cu_raw as $cu) $cu_map[$cu['coupon_id']] = $cu['emails'];
+        foreach ($coupons as &$c) $c['allowed_emails'] = $cu_map[$c['id']] ?? '';
+        unset($c);
 
         $data['js']      = 'admin-coupons.inc';
         $data['page']    = 'coupons';
@@ -841,29 +889,121 @@ class Admin extends CI_Controller {
         $this->_require_admin();
         $this->_admin_base($data);
 
-        $success = '';
+        $success = ''; $error = '';
+        $allowed_statuses = array('pending','approved','rejected','resolved');
+
+        // Single update
         if ($this->input->post('update_return')) {
-            $ret_id    = (int)$this->input->post('return_id');
-            $ret_status= $this->input->post('ret_status');
-            $note      = trim($this->input->post('admin_note') ?: '');
+            $ret_id     = (int)$this->input->post('return_id');
+            $ret_status = $this->input->post('ret_status');
+            $note       = trim($this->input->post('admin_note') ?: '');
+            if (!in_array($ret_status, $allowed_statuses)) $ret_status = 'pending';
             $this->db->query(
-                'UPDATE returns SET status=?,admin_note=? WHERE id=?', array($ret_status,$note,$ret_id)
+                'UPDATE returns SET status=?,admin_note=? WHERE id=?',
+                array($ret_status, $note, $ret_id)
             );
-            $success = 'Return/cancel request updated.';
+            // Restore stock when a return is approved
+            if ($ret_status === 'approved') {
+                $ret = $this->db->query('SELECT * FROM returns WHERE id=?', array($ret_id))->row_array();
+                if ($ret && $ret['type'] === 'return') {
+                    $items = $this->db->query('SELECT * FROM order_items WHERE order_id=?', array($ret['order_id']))->result_array();
+                    foreach ($items as $it) {
+                        $this->db->query('UPDATE products SET stock_qty=stock_qty+? WHERE id=?', array($it['quantity'], $it['product_id']));
+                    }
+                    $this->db->query("UPDATE orders SET status='returned' WHERE id=?", array($ret['order_id']));
+                }
+            }
+            $success = 'Request updated successfully.';
         }
 
+        // Bulk action
+        if ($this->input->post('bulk_action')) {
+            $bulk_status = $this->input->post('bulk_status');
+            $ids         = $this->input->post('bulk_ids') ?: array();
+            if (in_array($bulk_status, $allowed_statuses) && is_array($ids) && count($ids)) {
+                $ids = array_map('intval', $ids);
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $this->db->query(
+                    "UPDATE returns SET status=? WHERE id IN ($placeholders)",
+                    array_merge(array($bulk_status), $ids)
+                );
+                $success = count($ids).' request(s) marked as '.ucfirst($bulk_status).'.';
+            }
+        }
+
+        // Filters
+        $filter_type   = $this->input->get('type')   ?: '';
+        $filter_status = $this->input->get('status') ?: '';
+        $date_from     = $this->input->get('date_from') ?: '';
+        $date_to       = $this->input->get('date_to')   ?: '';
+
+        $where = '1=1'; $params = array();
+        if ($filter_type)   { $where .= ' AND r.type=?';   $params[] = $filter_type; }
+        if ($filter_status) { $where .= ' AND r.status=?'; $params[] = $filter_status; }
+        if ($date_from)     { $where .= ' AND DATE(r.created_at)>=?'; $params[] = $date_from; }
+        if ($date_to)       { $where .= ' AND DATE(r.created_at)<=?'; $params[] = $date_to; }
+
         $returns = $this->db->query(
-            'SELECT r.*, o.total_amount, o.status AS order_status, u.name AS customer_name, u.email
+            "SELECT r.*, o.total_amount, o.payment_method, o.status AS order_status,
+                    u.name AS customer_name, u.email, u.phone
              FROM returns r
              JOIN orders o ON o.id=r.order_id
              JOIN users u ON u.id=r.user_id
-             ORDER BY r.created_at DESC'
+             WHERE $where
+             ORDER BY r.created_at DESC",
+            $params
         )->result_array();
 
-        $data['js']      = 'admin-returns.inc';
-        $data['page']    = 'returns';
-        $data['returns'] = $returns;
-        $data['success'] = $success;
+        // Enrich with order items (one query for all)
+        $order_items_map = array();
+        if (!empty($returns)) {
+            $order_ids    = array_unique(array_column($returns, 'order_id'));
+            $placeholders = implode(',', array_fill(0, count($order_ids), '?'));
+            $items        = $this->db->query(
+                "SELECT oi.order_id, oi.product_name, oi.quantity, oi.unit_price, oi.variant_label, p.image
+                 FROM order_items oi LEFT JOIN products p ON p.id=oi.product_id
+                 WHERE oi.order_id IN ($placeholders)",
+                $order_ids
+            )->result_array();
+            foreach ($items as $it) {
+                $order_items_map[$it['order_id']][] = $it;
+            }
+        }
+
+        // Stats
+        $stats = $this->db->query(
+            "SELECT
+               COUNT(*) AS total,
+               SUM(r.status='pending')  AS pending,
+               SUM(r.status='approved') AS approved,
+               SUM(r.status='rejected') AS rejected,
+               SUM(r.status='resolved') AS resolved,
+               SUM(r.type='return')     AS type_returns,
+               SUM(r.type='cancel')     AS type_cancels,
+               SUM(o.total_amount)      AS total_amount,
+               SUM(CASE WHEN r.status='approved' THEN o.total_amount ELSE 0 END) AS approved_amount,
+               SUM(DATE(r.created_at)=CURDATE()) AS today_count
+             FROM returns r JOIN orders o ON o.id=r.order_id"
+        )->row_array();
+
+        // Top reasons (word frequency on reason text — group by first 60 chars as proxy)
+        $top_reasons = $this->db->query(
+            "SELECT LEFT(reason,80) AS reason_text, COUNT(*) AS cnt
+             FROM returns GROUP BY LEFT(reason,80) ORDER BY cnt DESC LIMIT 5"
+        )->result_array();
+
+        $data['js']              = 'admin-returns.inc';
+        $data['page']            = 'returns';
+        $data['returns']         = $returns;
+        $data['order_items_map'] = $order_items_map;
+        $data['stats']           = $stats;
+        $data['top_reasons']     = $top_reasons;
+        $data['success']         = $success;
+        $data['error']           = $error;
+        $data['filter_type']     = $filter_type;
+        $data['filter_status']   = $filter_status;
+        $data['date_from']       = $date_from;
+        $data['date_to']         = $date_to;
 
         $this->load->view('inc/header', $data);
         $this->load->view('inc/left-menu', $data);
@@ -906,8 +1046,14 @@ class Admin extends CI_Controller {
 
         $success = '';
         if ($this->input->server('REQUEST_METHOD') === 'POST') {
-            $keys = array('free_shipping_above','standard_charge','express_charge',
-                          'razorpay_key_id','razorpay_key_secret','estimated_days');
+            $keys = array(
+                'free_shipping_above','standard_charge','express_charge','estimated_days',
+                'cod_enabled','cod_surcharge','cod_min_order',
+                'packaging_charge','handling_fee',
+                'dispatch_cutoff','shipping_message',
+                'return_window_days','free_returns',
+                'courier_partners',
+            );
             foreach ($keys as $k) {
                 $val = trim($this->input->post($k) ?: '');
                 $this->db->query(
@@ -931,6 +1077,344 @@ class Admin extends CI_Controller {
         $this->load->view('inc/left-menu', $data);
         $this->load->view('page/admin/shipping', $data);
         $this->load->view('inc/footer', $data);
+    }
+
+    // ── Payment Settings ──────────────────────────────────────────
+
+    public function payment_settings()
+    {
+        $this->_require_admin();
+        $this->_admin_base($data);
+
+        $success = '';
+
+        if ($this->input->server('REQUEST_METHOD') === 'POST') {
+            $toggle_keys = array(
+                'payment_cod_enabled', 'payment_razorpay_enabled',
+                'payment_cards_enabled', 'payment_netbanking_enabled',
+                'payment_wallets_enabled', 'payment_upi_enabled',
+                'payment_applepay_enabled',
+            );
+            $text_keys = array('razorpay_key_id', 'razorpay_key_secret');
+
+            foreach ($toggle_keys as $k) {
+                $val = $this->input->post($k) ? '1' : '0';
+                $this->db->query(
+                    'INSERT INTO shipping_settings (key_name,key_value) VALUES (?,?) ON DUPLICATE KEY UPDATE key_value=?',
+                    array($k, $val, $val)
+                );
+            }
+            foreach ($text_keys as $k) {
+                $val = trim($this->input->post($k) ?: '');
+                $this->db->query(
+                    'INSERT INTO shipping_settings (key_name,key_value) VALUES (?,?) ON DUPLICATE KEY UPDATE key_value=?',
+                    array($k, $val, $val)
+                );
+            }
+            $success = 'Payment settings saved.';
+        }
+
+        $settings_raw = $this->db->query('SELECT * FROM shipping_settings')->result_array();
+        $settings     = array();
+        foreach ($settings_raw as $s) $settings[$s['key_name']] = $s['key_value'];
+
+        $payment_stats = $this->db->query(
+            "SELECT payment_method,
+                    COUNT(*) AS cnt,
+                    COALESCE(SUM(CASE WHEN payment_status='paid' THEN total_amount ELSE 0 END),0) AS total,
+                    COALESCE(SUM(CASE WHEN payment_status='paid' THEN 1 ELSE 0 END),0) AS paid_cnt,
+                    COALESCE(SUM(CASE WHEN payment_status='failed' THEN 1 ELSE 0 END),0) AS failed_cnt
+             FROM orders
+             GROUP BY payment_method ORDER BY cnt DESC"
+        )->result_array();
+
+        $transactions = $this->db->query(
+            'SELECT o.id, o.total_amount, o.payment_method, o.payment_status,
+                    o.status AS order_status, o.transaction_id, o.created_at,
+                    u.name AS customer_name, u.email
+             FROM orders o JOIN users u ON u.id=o.user_id
+             ORDER BY o.created_at DESC LIMIT 100'
+        )->result_array();
+
+        $data['js']            = 'admin-payments.inc';
+        $data['page']          = 'payments';
+        $data['settings']      = $settings;
+        $data['payment_stats'] = $payment_stats;
+        $data['transactions']  = $transactions;
+        $data['success']       = $success;
+
+        $this->load->view('inc/header', $data);
+        $this->load->view('inc/left-menu', $data);
+        $this->load->view('page/admin/payments', $data);
+        $this->load->view('inc/footer', $data);
+    }
+
+    // ── Loyalty & Promotion Engine ────────────────────────────────
+
+    public function loyalty()
+    {
+        $this->_require_admin();
+        $this->_admin_base($data);
+
+        $success = ''; $errors = array();
+
+        // ── Save loyalty settings ──────────────────────────────────
+        if ($this->input->post('save_settings')) {
+            $ly_keys = array('loyalty_earn_rate','loyalty_earn_per','loyalty_redeem_rate',
+                             'loyalty_redeem_value','loyalty_min_redeem','loyalty_expiry_days');
+            foreach ($ly_keys as $k) {
+                $v = max(0, (int)$this->input->post($k));
+                $this->db->query(
+                    'INSERT INTO shipping_settings (key_name,key_value) VALUES (?,?) ON DUPLICATE KEY UPDATE key_value=?',
+                    array($k, $v, $v)
+                );
+            }
+            $success = 'Loyalty settings saved.';
+        }
+
+        // ── Save / update campaign ─────────────────────────────────
+        if ($this->input->post('save_campaign')) {
+            $cid          = (int)$this->input->post('campaign_id');
+            $name         = trim($this->input->post('name') ?: '');
+            $type         = $this->input->post('type') ?: 'general';
+            $description  = trim($this->input->post('description') ?: '');
+            $offer_type   = $this->input->post('offer_type') ?: 'points_bonus';
+            $offer_value  = (float)$this->input->post('offer_value') ?: 0;
+            $coupon_code  = strtoupper(trim($this->input->post('coupon_code') ?: ''));
+            $target       = $this->input->post('target') ?: 'all';
+            $fest_date    = $this->input->post('festival_date') ?: null;
+            $trig_days    = (int)$this->input->post('trigger_days') ?: 0;
+            $start_date   = $this->input->post('start_date') ?: null;
+            $end_date     = $this->input->post('end_date') ?: null;
+            $message      = trim($this->input->post('message') ?: '');
+            $status       = $this->input->post('status') ?: 'draft';
+
+            if (!$name) $errors[] = 'Campaign name is required.';
+
+            if (empty($errors)) {
+                if ($cid) {
+                    $this->db->query(
+                        'UPDATE campaigns SET name=?,type=?,description=?,offer_type=?,offer_value=?,coupon_code=?,target=?,festival_date=?,trigger_days=?,start_date=?,end_date=?,message=?,status=? WHERE id=?',
+                        array($name,$type,$description,$offer_type,$offer_value,$coupon_code,$target,$fest_date,$trig_days,$start_date,$end_date,$message,$status,$cid)
+                    );
+                    $success = 'Campaign updated.';
+                } else {
+                    $this->db->query(
+                        'INSERT INTO campaigns (name,type,description,offer_type,offer_value,coupon_code,target,festival_date,trigger_days,start_date,end_date,message,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                        array($name,$type,$description,$offer_type,$offer_value,$coupon_code,$target,$fest_date,$trig_days,$start_date,$end_date,$message,$status)
+                    );
+                    $success = 'Campaign created.';
+                }
+            }
+        }
+
+        // ── Manually adjust customer points ───────────────────────
+        if ($this->input->post('adjust_points')) {
+            $uid    = (int)$this->input->post('adj_user_id');
+            $pts    = (int)$this->input->post('adj_points');
+            $note   = trim($this->input->post('adj_note') ?: 'Admin adjustment');
+            if ($uid && $pts !== 0) {
+                $this->spice_model->add_loyalty_points($uid, $pts, 'adjusted', 'admin', null, $note);
+                $success = 'Points adjusted successfully.';
+            }
+        }
+
+        // ── Set customer birthday ──────────────────────────────────
+        if ($this->input->post('save_birthday')) {
+            $uid = (int)$this->input->post('bday_user_id');
+            $bday = $this->input->post('bday_date') ?: null;
+            if ($uid) {
+                $this->db->query(
+                    'INSERT INTO user_loyalty (user_id,birthday) VALUES (?,?) ON DUPLICATE KEY UPDATE birthday=?',
+                    array($uid, $bday, $bday)
+                );
+                $success = 'Birthday updated.';
+            }
+        }
+
+        // ── Trigger campaign ──────────────────────────────────────
+        if ($this->input->get('trigger')) {
+            $cid      = (int)$this->input->get('trigger');
+            $campaign = $this->db->query('SELECT * FROM campaigns WHERE id=?', array($cid))->row_array();
+            if ($campaign) {
+                $users = $this->_get_segment_users($campaign['target'], $campaign['type']);
+                $count = 0;
+                foreach ($users as $u) {
+                    $exists = $this->db->query(
+                        'SELECT id FROM campaign_logs WHERE campaign_id=? AND user_id=?',
+                        array($cid, $u['id'])
+                    )->row();
+                    if (!$exists) {
+                        $this->db->query(
+                            'INSERT INTO campaign_logs (campaign_id,user_id) VALUES (?,?)',
+                            array($cid, $u['id'])
+                        );
+                        if ($campaign['offer_type'] === 'points_bonus' && $campaign['offer_value'] > 0) {
+                            $this->spice_model->add_loyalty_points(
+                                $u['id'], (int)$campaign['offer_value'],
+                                'bonus', 'campaign', $cid, 'Campaign: '.$campaign['name']
+                            );
+                        }
+                        $count++;
+                    }
+                }
+                $this->db->query(
+                    'UPDATE campaigns SET sent_count=sent_count+?, status="active" WHERE id=?',
+                    array($count, $cid)
+                );
+                $this->session->set_flashdata('ly_success', 'Campaign sent to '.$count.' customers.');
+            }
+            redirect('admin-loyalty');
+        }
+
+        // ── Run automated birthday / anniversary campaigns ─────────
+        if ($this->input->get('run_auto')) {
+            $auto_count = 0;
+
+            // Birthday campaigns
+            $bday_campaigns = $this->db->query("SELECT * FROM campaigns WHERE type='birthday' AND status='active'")->result_array();
+            foreach ($bday_campaigns as $camp) {
+                $bday_users = $this->db->query(
+                    "SELECT u.id FROM users u JOIN user_loyalty ul ON ul.user_id=u.id
+                     WHERE DATE_FORMAT(ul.birthday,'%m-%d')=DATE_FORMAT(NOW(),'%m-%d')
+                     AND ul.birthday IS NOT NULL AND u.role='customer'"
+                )->result_array();
+                foreach ($bday_users as $u) {
+                    $exists = $this->db->query('SELECT id FROM campaign_logs WHERE campaign_id=? AND user_id=? AND DATE(sent_at)=CURDATE()', array($camp['id'],$u['id']))->row();
+                    if (!$exists) {
+                        $this->db->query('INSERT INTO campaign_logs (campaign_id,user_id) VALUES (?,?)', array($camp['id'],$u['id']));
+                        if ($camp['offer_type'] === 'points_bonus' && $camp['offer_value'] > 0) {
+                            $this->spice_model->add_loyalty_points($u['id'], (int)$camp['offer_value'], 'bonus', 'campaign', $camp['id'], '🎂 Birthday bonus from: '.$camp['name']);
+                        }
+                        $auto_count++;
+                    }
+                }
+            }
+
+            // Anniversary campaigns (account creation anniversary)
+            $anni_campaigns = $this->db->query("SELECT * FROM campaigns WHERE type='anniversary' AND status='active'")->result_array();
+            foreach ($anni_campaigns as $camp) {
+                $anni_users = $this->db->query(
+                    "SELECT id FROM users WHERE role='customer'
+                     AND DATE_FORMAT(created_at,'%m-%d')=DATE_FORMAT(NOW(),'%m-%d')
+                     AND YEAR(NOW())>YEAR(created_at)"
+                )->result_array();
+                foreach ($anni_users as $u) {
+                    $exists = $this->db->query('SELECT id FROM campaign_logs WHERE campaign_id=? AND user_id=? AND DATE(sent_at)=CURDATE()', array($camp['id'],$u['id']))->row();
+                    if (!$exists) {
+                        $this->db->query('INSERT INTO campaign_logs (campaign_id,user_id) VALUES (?,?)', array($camp['id'],$u['id']));
+                        if ($camp['offer_type'] === 'points_bonus' && $camp['offer_value'] > 0) {
+                            $this->spice_model->add_loyalty_points($u['id'], (int)$camp['offer_value'], 'bonus', 'campaign', $camp['id'], '🎉 Anniversary bonus from: '.$camp['name']);
+                        }
+                        $auto_count++;
+                    }
+                }
+            }
+
+            $this->session->set_flashdata('ly_success', 'Automation run complete. '.$auto_count.' reward(s) sent today.');
+            redirect('admin-loyalty');
+        }
+
+        // ── Delete campaign ────────────────────────────────────────
+        if ($this->input->get('del_campaign')) {
+            $cid = (int)$this->input->get('del_campaign');
+            $this->db->query('DELETE FROM campaigns WHERE id=?', array($cid));
+            $this->db->query('DELETE FROM campaign_logs WHERE campaign_id=?', array($cid));
+            redirect('admin-loyalty');
+        }
+
+        // ── Load data ──────────────────────────────────────────────
+        $flash = $this->session->flashdata('ly_success');
+        if ($flash) $success = $flash;
+
+        // Settings
+        $sr = $this->db->query("SELECT * FROM shipping_settings WHERE key_name LIKE 'loyalty_%'")->result_array();
+        $ly = array('loyalty_earn_rate'=>'1','loyalty_earn_per'=>'10','loyalty_redeem_rate'=>'100',
+                    'loyalty_redeem_value'=>'10','loyalty_min_redeem'=>'100','loyalty_expiry_days'=>'365');
+        foreach ($sr as $s) $ly[$s['key_name']] = $s['key_value'];
+
+        // Customers with segment + loyalty
+        $customers = $this->_get_segment_users('all');
+
+        // Campaigns
+        $campaigns = $this->db->query('SELECT c.*, (SELECT COUNT(*) FROM campaign_logs WHERE campaign_id=c.id) AS actual_sent FROM campaigns c ORDER BY c.created_at DESC')->result_array();
+
+        // Recent ledger (last 100 entries)
+        $ledger = $this->db->query(
+            'SELECT l.*,u.name AS customer_name FROM loyalty_ledger l JOIN users u ON u.id=l.user_id ORDER BY l.created_at DESC LIMIT 100'
+        )->result_array();
+
+        // Stats
+        $total_pts_issued   = (int)$this->db->query("SELECT COALESCE(SUM(points),0) AS t FROM loyalty_ledger WHERE points>0")->row()->t;
+        $total_pts_redeemed = (int)$this->db->query("SELECT COALESCE(SUM(ABS(points)),0) AS t FROM loyalty_ledger WHERE points<0")->row()->t;
+        $total_enrolled     = (int)$this->db->query("SELECT COUNT(*) AS cnt FROM user_loyalty WHERE points_earned>0")->row()->cnt;
+        $active_campaigns   = (int)$this->db->query("SELECT COUNT(*) AS cnt FROM campaigns WHERE status='active'")->row()->cnt;
+
+        $data['js']                  = 'admin-loyalty.inc';
+        $data['page']                = 'loyalty';
+        $data['ly']                  = $ly;
+        $data['customers']           = $customers;
+        $data['campaigns']           = $campaigns;
+        $data['ledger']              = $ledger;
+        $data['total_pts_issued']    = $total_pts_issued;
+        $data['total_pts_redeemed']  = $total_pts_redeemed;
+        $data['total_enrolled']      = $total_enrolled;
+        $data['active_campaigns']    = $active_campaigns;
+        $data['errors']              = $errors;
+        $data['success']             = $success;
+
+        $this->load->view('inc/header', $data);
+        $this->load->view('inc/left-menu', $data);
+        $this->load->view('page/admin/loyalty', $data);
+        $this->load->view('inc/footer', $data);
+    }
+
+    private function _get_segment_users($segment = 'all', $campaign_type = 'general')
+    {
+        $having = '';
+        switch ($segment) {
+            case 'new':
+                $having = "HAVING order_count=0 AND DATEDIFF(NOW(),u.created_at)<=30";
+                break;
+            case 'frequent':
+                $having = "HAVING freq_orders>=5";
+                break;
+            case 'highvalue':
+                $having = "HAVING total_spent>=10000";
+                break;
+            case 'inactive':
+                $having = "HAVING (last_order_at IS NULL OR DATEDIFF(NOW(),last_order_at)>90) AND DATEDIFF(NOW(),u.created_at)>30";
+                break;
+        }
+        // birthday / anniversary handled separately via run_auto
+        return $this->db->query(
+            "SELECT u.id, u.name, u.email, u.phone, u.created_at,
+                    COALESCE(ul.points_balance,0)  AS points_balance,
+                    COALESCE(ul.points_earned,0)   AS points_earned,
+                    COALESCE(ul.tier,'bronze')     AS tier,
+                    ul.birthday,
+                    COUNT(DISTINCT o.id)           AS order_count,
+                    COALESCE(SUM(o.total_amount),0) AS total_spent,
+                    MAX(o.created_at)              AS last_order_at,
+                    (SELECT COUNT(*) FROM orders o2
+                     WHERE o2.user_id=u.id
+                       AND o2.created_at>=DATE_SUB(NOW(),INTERVAL 6 MONTH)
+                       AND o2.status NOT IN ('cancelled')) AS freq_orders,
+                    CASE
+                      WHEN COUNT(DISTINCT o.id)=0 AND DATEDIFF(NOW(),u.created_at)<=30 THEN 'new'
+                      WHEN (SELECT COUNT(*) FROM orders o3 WHERE o3.user_id=u.id AND o3.created_at>=DATE_SUB(NOW(),INTERVAL 6 MONTH) AND o3.status NOT IN ('cancelled'))>=5 THEN 'frequent'
+                      WHEN COALESCE(SUM(o.total_amount),0)>=10000 THEN 'highvalue'
+                      WHEN (MAX(o.created_at) IS NULL OR DATEDIFF(NOW(),MAX(o.created_at))>90) AND DATEDIFF(NOW(),u.created_at)>30 THEN 'inactive'
+                      ELSE 'regular'
+                    END AS segment
+             FROM users u
+             LEFT JOIN orders o   ON o.user_id=u.id AND o.status NOT IN ('cancelled')
+             LEFT JOIN user_loyalty ul ON ul.user_id=u.id
+             WHERE u.role='customer' AND u.is_blocked=0
+             GROUP BY u.id
+             $having
+             ORDER BY u.created_at DESC"
+        )->result_array();
     }
 
     // ── Admin Roles ───────────────────────────────────────────────
@@ -1440,5 +1924,476 @@ class Admin extends CI_Controller {
         }
         fclose($f);
         exit;
+    }
+
+    // ── POS Integration ───────────────────────────────────────────
+
+    public function pos()
+    {
+        $this->_require_admin();
+        $this->_admin_base($data);
+
+        $success = ''; $error = '';
+
+        // ── Generate new API key ───────────────────────────────────
+        if ($this->input->post('create_api_key')) {
+            $label      = trim($this->input->post('label') ?: '');
+            $pos_system = trim($this->input->post('pos_system') ?: '');
+            if (!$label) { $error = 'Label is required.'; }
+            else {
+                $new_key = bin2hex(random_bytes(24)); // 48-char hex key
+                $this->db->query(
+                    'INSERT INTO pos_api_keys (label,api_key,pos_system,sync_stock,sync_price,sync_coupon,sync_avail)
+                     VALUES (?,?,?,?,?,?,?)',
+                    array(
+                        $label, $new_key, $pos_system,
+                        (int)(bool)$this->input->post('sync_stock'),
+                        (int)(bool)$this->input->post('sync_price'),
+                        (int)(bool)$this->input->post('sync_coupon'),
+                        (int)(bool)$this->input->post('sync_avail'),
+                    )
+                );
+                $success = 'API key created: '.$new_key;
+            }
+        }
+
+        // ── Toggle / delete API key ────────────────────────────────
+        if ($this->input->get('toggle_key')) {
+            $kid = (int)$this->input->get('toggle_key');
+            $this->db->query('UPDATE pos_api_keys SET status=1-status WHERE id=?', array($kid));
+            redirect('admin-pos?tab=keys');
+        }
+        if ($this->input->get('delete_key')) {
+            $kid = (int)$this->input->get('delete_key');
+            $this->db->query('DELETE FROM pos_api_keys WHERE id=?', array($kid));
+            redirect('admin-pos?tab=keys');
+        }
+
+        // ── Manual sync ───────────────────────────────────────────
+        if ($this->input->post('manual_sync')) {
+            $sync_type   = $this->input->post('manual_type');
+            $product_code= trim($this->input->post('manual_product_code') ?: '');
+            $updated = 0; $err_msg = '';
+
+            $this->db->query(
+                'INSERT INTO pos_sync_logs (sync_type,source,records_sent,request_ip,status)
+                 VALUES (?,?,?,?,?)',
+                array($sync_type,'manual',1,$this->input->ip_address(),'running')
+            );
+            $log_id = $this->db->insert_id();
+
+            if (!$product_code) {
+                $err_msg = 'Product code required.';
+            } else {
+                switch ($sync_type) {
+                    case 'stock':
+                        $qty = (int)$this->input->post('manual_stock_qty');
+                        $this->db->query('UPDATE products SET stock_qty=? WHERE product_code=?', array($qty, $product_code));
+                        $updated = $this->db->affected_rows();
+                        break;
+                    case 'price':
+                        $price = (float)$this->input->post('manual_price');
+                        $offer = $this->input->post('manual_offer_price');
+                        $offer = ($offer !== '' && $offer !== null) ? (float)$offer : null;
+                        if ($offer !== null) {
+                            $this->db->query('UPDATE products SET price=?,offer_price=? WHERE product_code=?', array($price,$offer,$product_code));
+                        } else {
+                            $this->db->query('UPDATE products SET price=? WHERE product_code=?', array($price,$product_code));
+                        }
+                        $updated = $this->db->affected_rows();
+                        break;
+                    case 'availability':
+                        $avail = (int)(bool)$this->input->post('manual_available');
+                        $this->db->query('UPDATE products SET status=? WHERE product_code=?', array($avail,$product_code));
+                        $updated = $this->db->affected_rows();
+                        break;
+                }
+                if ($updated === 0) $err_msg = "No product found with code '$product_code'.";
+            }
+
+            $final = $err_msg ? 'failed' : 'success';
+            $this->db->query(
+                'UPDATE pos_sync_logs SET status=?,records_updated=?,error_message=?,completed_at=NOW() WHERE id=?',
+                array($final, $updated, $err_msg ?: null, $log_id)
+            );
+            if ($final === 'success') $success = "Manual $sync_type sync applied to product '$product_code'.";
+            else $error = $err_msg;
+        }
+
+        // ── Data ──────────────────────────────────────────────────
+        $api_keys = $this->db->query(
+            'SELECT k.*, (SELECT COUNT(*) FROM pos_sync_logs WHERE api_key_id=k.id) AS sync_count
+             FROM pos_api_keys k ORDER BY k.created_at DESC'
+        )->result_array();
+
+        $tab = $this->input->get('tab') ?: 'overview';
+
+        // Log filters
+        $log_type   = $this->input->get('log_type')   ?: '';
+        $log_status = $this->input->get('log_status') ?: '';
+        $log_from   = $this->input->get('log_from')   ?: '';
+        $log_to     = $this->input->get('log_to')     ?: '';
+
+        $where = '1=1'; $params = array();
+        if ($log_type)   { $where .= ' AND l.sync_type=?';        $params[] = $log_type; }
+        if ($log_status) { $where .= ' AND l.status=?';           $params[] = $log_status; }
+        if ($log_from)   { $where .= ' AND DATE(l.started_at)>=?';$params[] = $log_from; }
+        if ($log_to)     { $where .= ' AND DATE(l.started_at)<=?';$params[] = $log_to; }
+
+        $sync_logs = $this->db->query(
+            "SELECT l.*, k.label AS key_label, k.pos_system
+             FROM pos_sync_logs l
+             LEFT JOIN pos_api_keys k ON k.id=l.api_key_id
+             WHERE $where
+             ORDER BY l.started_at DESC LIMIT 200",
+            $params
+        )->result_array();
+
+        // Overview stats
+        $stats = $this->db->query(
+            "SELECT
+               COUNT(*) AS total_syncs,
+               SUM(l.status='success')  AS total_success,
+               SUM(l.status='failed')   AS total_failed,
+               SUM(l.status='partial')  AS total_partial,
+               SUM(l.records_updated)   AS total_records_updated,
+               SUM(l.sync_type='stock')        AS stock_syncs,
+               SUM(l.sync_type='price')        AS price_syncs,
+               SUM(l.sync_type='coupon')       AS coupon_syncs,
+               SUM(l.sync_type='availability') AS avail_syncs,
+               SUM(DATE(l.started_at)=CURDATE()) AS today_syncs,
+               MAX(l.started_at) AS last_sync_at
+             FROM pos_sync_logs l"
+        )->row_array();
+
+        $recent_logs = $this->db->query(
+            "SELECT l.*, k.label AS key_label
+             FROM pos_sync_logs l LEFT JOIN pos_api_keys k ON k.id=l.api_key_id
+             ORDER BY l.started_at DESC LIMIT 8"
+        )->result_array();
+
+        // Product lookup for manual sync autocomplete
+        $products_with_code = $this->db->query(
+            'SELECT product_code, name, price, offer_price, stock_qty, status
+             FROM products WHERE product_code IS NOT NULL AND product_code != ""
+             ORDER BY name LIMIT 200'
+        )->result_array();
+
+        $data['js']                 = 'admin-pos.inc';
+        $data['page']               = 'pos';
+        $data['tab']                = $tab;
+        $data['api_keys']           = $api_keys;
+        $data['sync_logs']          = $sync_logs;
+        $data['stats']              = $stats;
+        $data['recent_logs']        = $recent_logs;
+        $data['products_with_code'] = $products_with_code;
+        $data['log_type']           = $log_type;
+        $data['log_status']         = $log_status;
+        $data['log_from']           = $log_from;
+        $data['log_to']             = $log_to;
+        $data['success']            = $success;
+        $data['error']              = $error;
+        $data['webhook_url']        = site_url('pos-sync');
+
+        $this->load->view('inc/header', $data);
+        $this->load->view('inc/left-menu', $data);
+        $this->load->view('page/admin/pos', $data);
+        $this->load->view('inc/footer', $data);
+    }
+
+    // ── AJAX: POS manual sync ─────────────────────────────────
+
+    public function ajax_pos_sync()
+    {
+        $this->_require_admin();
+        header('Content-Type: application/json');
+
+        $sync_type    = $this->input->post('manual_type');
+        $product_code = trim($this->input->post('manual_product_code') ?: '');
+        $updated = 0; $err_msg = '';
+
+        $this->db->query(
+            'INSERT INTO pos_sync_logs (sync_type,source,records_sent,request_ip,status) VALUES (?,?,?,?,?)',
+            array($sync_type, 'manual', 1, $this->input->ip_address(), 'running')
+        );
+        $log_id = $this->db->insert_id();
+
+        if (!$product_code) {
+            $err_msg = 'Product code is required.';
+        } else {
+            switch ($sync_type) {
+                case 'stock':
+                    $qty = (int)$this->input->post('manual_stock_qty');
+                    $this->db->query('UPDATE products SET stock_qty=? WHERE product_code=?', array($qty, $product_code));
+                    $updated = $this->db->affected_rows();
+                    if (!$updated) $err_msg = "No product found with code '$product_code'.";
+                    break;
+                case 'price':
+                    $price = (float)$this->input->post('manual_price');
+                    $offer = $this->input->post('manual_offer_price');
+                    $offer = ($offer !== '' && $offer !== null) ? (float)$offer : null;
+                    if ($offer !== null) {
+                        $this->db->query('UPDATE products SET price=?,offer_price=? WHERE product_code=?', array($price, $offer, $product_code));
+                    } else {
+                        $this->db->query('UPDATE products SET price=? WHERE product_code=?', array($price, $product_code));
+                    }
+                    $updated = $this->db->affected_rows();
+                    if (!$updated) $err_msg = "No product found with code '$product_code'.";
+                    break;
+                case 'availability':
+                    $avail = (int)(bool)$this->input->post('manual_available');
+                    $this->db->query('UPDATE products SET status=? WHERE product_code=?', array($avail, $product_code));
+                    $updated = $this->db->affected_rows();
+                    if (!$updated) $err_msg = "No product found with code '$product_code'.";
+                    break;
+                default:
+                    $err_msg = 'Invalid sync type.';
+            }
+        }
+
+        $final = $err_msg ? 'failed' : 'success';
+        $this->db->query(
+            'UPDATE pos_sync_logs SET status=?,records_updated=?,error_message=?,completed_at=NOW() WHERE id=?',
+            array($final, $updated, $err_msg ?: null, $log_id)
+        );
+
+        // Fetch updated product info for UI refresh
+        $product = null;
+        if (!$err_msg && $product_code) {
+            $product = $this->db->query(
+                'SELECT product_code, name, price, offer_price, stock_qty, status FROM products WHERE product_code=?',
+                array($product_code)
+            )->row_array();
+        }
+
+        echo json_encode(array(
+            'success' => !$err_msg,
+            'message' => $err_msg ?: ucfirst($sync_type)." sync applied to product '$product_code'.",
+            'product' => $product,
+            'log_id'  => $log_id,
+        ));
+    }
+
+    // ── AJAX: Returns status update ───────────────────────────
+
+    public function ajax_returns_update()
+    {
+        $this->_require_admin();
+        header('Content-Type: application/json');
+
+        $ret_id     = (int)$this->input->post('return_id');
+        $ret_status = $this->input->post('ret_status');
+        $note       = trim($this->input->post('admin_note') ?: '');
+        $allowed    = array('pending','approved','rejected','resolved');
+
+        if (!$ret_id || !in_array($ret_status, $allowed)) {
+            echo json_encode(array('success'=>false,'message'=>'Invalid request.'));
+            return;
+        }
+
+        $this->db->query('UPDATE returns SET status=?,admin_note=? WHERE id=?', array($ret_status, $note, $ret_id));
+
+        if ($ret_status === 'approved') {
+            $ret = $this->db->query('SELECT * FROM returns WHERE id=?', array($ret_id))->row_array();
+            if ($ret && $ret['type'] === 'return') {
+                $items = $this->db->query('SELECT * FROM order_items WHERE order_id=?', array($ret['order_id']))->result_array();
+                foreach ($items as $it) {
+                    $this->db->query('UPDATE products SET stock_qty=stock_qty+? WHERE id=?', array($it['quantity'], $it['product_id']));
+                }
+                $this->db->query("UPDATE orders SET status='returned' WHERE id=?", array($ret['order_id']));
+            }
+        }
+
+        echo json_encode(array(
+            'success'    => true,
+            'message'    => 'Request '.ucfirst($ret_status).' successfully.',
+            'ret_id'     => $ret_id,
+            'new_status' => $ret_status,
+        ));
+    }
+
+    // ── AJAX: Orders status update ────────────────────────────
+
+    public function ajax_orders_update()
+    {
+        $this->_require_admin();
+        header('Content-Type: application/json');
+
+        $order_id    = (int)$this->input->post('order_id');
+        $status      = $this->input->post('status');
+        $tracking_no = trim($this->input->post('tracking_no') ?: '');
+        $courier     = trim($this->input->post('courier_name') ?: '');
+        $allowed     = array('pending','processing','shipped','delivered','cancelled');
+
+        if (!$order_id || !in_array($status, $allowed)) {
+            echo json_encode(array('success'=>false,'message'=>'Invalid request.'));
+            return;
+        }
+
+        $this->db->query(
+            'UPDATE orders SET status=?,tracking_no=?,courier_name=? WHERE id=?',
+            array($status, $tracking_no, $courier, $order_id)
+        );
+
+        if ($status === 'delivered') {
+            $this->db->query("UPDATE orders SET payment_status='paid' WHERE id=? AND payment_method='cod'", array($order_id));
+            $already = $this->db->query(
+                "SELECT id FROM loyalty_ledger WHERE ref_type='order' AND ref_id=? AND type='earned' LIMIT 1",
+                array($order_id)
+            )->row();
+            if (!$already) {
+                $ord = $this->db->query('SELECT user_id, total_amount FROM orders WHERE id=?', array($order_id))->row_array();
+                $earn_rate = (int)($this->spice_model->get_setting('loyalty_earn_rate') ?: 1);
+                $earn_per  = (int)($this->spice_model->get_setting('loyalty_earn_per')  ?: 10);
+                if ($earn_per > 0 && $ord) {
+                    $pts = (int)floor(((float)$ord['total_amount'] / $earn_per) * $earn_rate);
+                    if ($pts > 0) {
+                        $this->spice_model->add_loyalty_points(
+                            $ord['user_id'], $pts, 'earned', 'order', $order_id,
+                            'Earned on Order #'.str_pad($order_id, 5, '0', STR_PAD_LEFT)
+                        );
+                    }
+                }
+            }
+        }
+
+        // Return new payment_status for UI update
+        $pay_status = $this->db->query('SELECT payment_status FROM orders WHERE id=?', array($order_id))->row()->payment_status ?? '';
+
+        echo json_encode(array(
+            'success'        => true,
+            'message'        => 'Order #'.str_pad($order_id,5,'0',STR_PAD_LEFT).' updated to '.ucfirst($status).'.',
+            'order_id'       => $order_id,
+            'new_status'     => $status,
+            'payment_status' => $pay_status,
+        ));
+    }
+
+    // ── Fazaa / Isaad Settings ────────────────────────────────────
+    public function fazaa_settings()
+    {
+        $this->_require_admin();
+        $this->_admin_base($data);
+
+        $success = ''; $errors = array();
+
+        if ($this->input->post('save_fazaa')) {
+            $programs = array('fazaa', 'isaad');
+            foreach ($programs as $prog) {
+                $enabled      = $this->input->post('enabled_'.$prog)     ? 1 : 0;
+                $discount_pct = (float)$this->input->post('discount_pct_'.$prog);
+                $max_discount = (float)$this->input->post('max_discount_'.$prog);
+                $min_order    = (float)$this->input->post('min_order_'.$prog);
+                $api_url      = trim($this->input->post('api_url_'.$prog)  ?: '');
+                $api_key      = trim($this->input->post('api_key_'.$prog)  ?: '');
+                $otp_enabled  = $this->input->post('otp_enabled_'.$prog)  ? 1 : 0;
+                $logo_url     = trim($this->input->post('logo_url_'.$prog) ?: '');
+
+                $this->db->query(
+                    'UPDATE fazaa_settings SET enabled=?, discount_pct=?, max_discount=?, min_order=?,
+                     api_url=?, api_key=?, otp_enabled=?, logo_url=? WHERE program=?',
+                    array($enabled, $discount_pct, $max_discount, $min_order,
+                          $api_url, $api_key, $otp_enabled, $logo_url, $prog)
+                );
+            }
+            $success = 'Fazaa / Isaad settings saved.';
+        }
+
+        $programs = $this->db->query('SELECT * FROM fazaa_settings ORDER BY id')->result_array();
+        $prog_map  = array();
+        foreach ($programs as $p) $prog_map[$p['program']] = $p;
+
+        $data['page']     = 'fazaa';
+        $data['title']    = 'Fazaa / Isaad Settings';
+        $data['success']  = $success;
+        $data['errors']   = $errors;
+        $data['prog_map'] = $prog_map;
+        $data['js']       = '';
+
+        $this->load->view('inc/header', $data);
+        $this->load->view('inc/left-menu', $data);
+        $this->load->view('page/admin/fazaa-settings', $data);
+        $this->load->view('inc/footer', $data);
+    }
+
+    // ── Fazaa / Isaad Usage Report ────────────────────────────────
+    public function fazaa_report()
+    {
+        $this->_require_admin();
+        $this->_admin_base($data);
+
+        $filter_program  = $this->input->get('program')   ?: '';
+        $filter_date_from= $this->input->get('date_from') ?: '';
+        $filter_date_to  = $this->input->get('date_to')   ?: '';
+
+        // ── CSV export ────────────────────────────────────────────
+        if ($this->input->get('export') === 'csv') {
+            $where = '1=1';
+            $params = array();
+            if ($filter_program)   { $where .= ' AND fu.program=?';                    $params[] = $filter_program; }
+            if ($filter_date_from) { $where .= ' AND DATE(fu.created_at)>=?';          $params[] = $filter_date_from; }
+            if ($filter_date_to)   { $where .= ' AND DATE(fu.created_at)<=?';          $params[] = $filter_date_to; }
+            $rows = $this->db->query(
+                "SELECT fu.id, fu.program, fu.member_no, u.name AS customer_name, fu.order_id,
+                        fu.discount_pct, fu.discount_amt, fu.order_total, fu.created_at
+                   FROM fazaa_usages fu LEFT JOIN users u ON u.id=fu.user_id
+                  WHERE $where ORDER BY fu.id DESC", $params
+            )->result_array();
+
+            header('Content-Type: text/csv');
+            header('Content-Disposition: attachment; filename="fazaa-report-'.date('Ymd').'.csv"');
+            $out = fopen('php://output', 'w');
+            fputcsv($out, array('ID','Program','Member No','Customer','Order','Disc%','Disc Amt','Order Total','Date'));
+            foreach ($rows as $r) {
+                fputcsv($out, array($r['id'], strtoupper($r['program']), $r['member_no'],
+                    $r['customer_name'], '#'.str_pad($r['order_id'],5,'0',STR_PAD_LEFT),
+                    $r['discount_pct'].'%', '₹'.$r['discount_amt'], '₹'.$r['order_total'],
+                    date('d M Y', strtotime($r['created_at']))));
+            }
+            fclose($out);
+            exit;
+        }
+
+        // ── Stats ─────────────────────────────────────────────────
+        $stats = $this->db->query(
+            "SELECT COUNT(*) AS total_uses,
+                    COALESCE(SUM(discount_amt),0) AS total_discount,
+                    COUNT(DISTINCT member_no) AS unique_members,
+                    COALESCE(SUM(order_total),0) AS total_gmv
+               FROM fazaa_usages"
+        )->row_array();
+
+        $by_program = $this->db->query(
+            "SELECT program, COUNT(*) AS uses, COALESCE(SUM(discount_amt),0) AS disc_total
+               FROM fazaa_usages GROUP BY program"
+        )->result_array();
+
+        // ── Filtered list ─────────────────────────────────────────
+        $where = '1=1'; $params = array();
+        if ($filter_program)   { $where .= ' AND fu.program=?';           $params[] = $filter_program; }
+        if ($filter_date_from) { $where .= ' AND DATE(fu.created_at)>=?'; $params[] = $filter_date_from; }
+        if ($filter_date_to)   { $where .= ' AND DATE(fu.created_at)<=?'; $params[] = $filter_date_to; }
+
+        $usages = $this->db->query(
+            "SELECT fu.id, fu.program, fu.member_no, u.name AS customer_name,
+                    fu.order_id, fu.discount_pct, fu.discount_amt, fu.order_total, fu.created_at
+               FROM fazaa_usages fu LEFT JOIN users u ON u.id=fu.user_id
+              WHERE $where ORDER BY fu.id DESC LIMIT 200", $params
+        )->result_array();
+
+        $data['page']           = 'fazaa';
+        $data['title']          = 'Fazaa / Isaad Report';
+        $data['stats']          = $stats;
+        $data['by_program']     = $by_program;
+        $data['usages']         = $usages;
+        $data['filter_program'] = $filter_program;
+        $data['filter_date_from']= $filter_date_from;
+        $data['filter_date_to'] = $filter_date_to;
+        $data['js']             = '';
+
+        $this->load->view('inc/header', $data);
+        $this->load->view('inc/left-menu', $data);
+        $this->load->view('page/admin/fazaa-report', $data);
+        $this->load->view('inc/footer', $data);
     }
 }

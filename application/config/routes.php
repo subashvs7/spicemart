@@ -69,7 +69,26 @@ $route['admin-cms']          = 'admin/cms_pages';
 $route['admin-why-choose-us']= 'admin/why_choose_us';
 $route['admin-testimonials'] = 'admin/testimonials';
 $route['admin-shipping']     = 'admin/shipping';
+$route['admin-payments']     = 'admin/payment_settings';
+$route['admin-loyalty']      = 'admin/loyalty';
 $route['admin-returns']      = 'admin/returns';
 $route['admin-contacts']     = 'admin/contacts';
 $route['admin-roles']        = 'admin/admin_roles';
 $route['admin-settings']     = 'admin/site_settings';
+
+// ── POS Integration ───────────────────────────────────────────
+$route['admin-pos']             = 'admin/pos';
+$route['pos-sync']              = 'api/pos_sync';
+$route['pos-sync/(:any)']       = 'api/pos_sync/$1';
+
+// ── Fazaa / Isaad ─────────────────────────────────────────────
+$route['admin-fazaa']           = 'admin/fazaa_settings';
+$route['admin-fazaa-report']    = 'admin/fazaa_report';
+
+// ── AJAX endpoints (zero-refresh) ────────────────────────────
+$route['ajax/pos-manual-sync']  = 'admin/ajax_pos_sync';
+$route['ajax/returns-update']   = 'admin/ajax_returns_update';
+$route['ajax/orders-update']    = 'admin/ajax_orders_update';
+$route['ajax/fazaa-verify']     = 'api/fazaa_verify';
+$route['ajax/fazaa-otp-confirm']= 'api/fazaa_otp_confirm';
+$route['ajax/fazaa-remove']     = 'api/fazaa_remove';

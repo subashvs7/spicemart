@@ -27,8 +27,23 @@
   <button onclick="window.print()" style="background:#7B4228;color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:14px">
     🖨️ Print Invoice
   </button>
-  <a href="javascript:history.back()" style="margin-left:10px;color:#555;font-size:13px">← Go Back</a>
+  <button onclick="goBack()" style="background:none;border:1px solid #ccc;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;color:#555;margin-left:10px">
+    ← Go Back
+  </button>
 </div>
+<script>
+function goBack() {
+  if (history.length > 1) {
+    history.back();
+  } else {
+    // Opened in a new tab — try to close it, fall back to account page
+    window.close();
+    setTimeout(function () {
+      window.location.href = '<?php echo site_url("account"); ?>';
+    }, 200);
+  }
+}
+</script>
 
 <div class="invoice-wrap">
   <div class="invoice-header">

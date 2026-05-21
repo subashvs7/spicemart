@@ -35,6 +35,12 @@
           <a href="<?php echo site_url('account'); ?>?tab=addresses" class="nav-link <?php echo $tab==='addresses'?'active':''; ?>">
             <i class="bi bi-geo-alt me-2"></i>Addresses
           </a>
+          <a href="<?php echo site_url('account'); ?>?tab=loyalty" class="nav-link <?php echo $tab==='loyalty'?'active':''; ?>">
+            <i class="bi bi-star me-2"></i>Loyalty Points
+            <?php if (!empty($loyalty['points_balance'])): ?>
+              <span class="badge ms-auto" style="background:var(--saffron);color:#fff;font-size:.7rem"><?php echo number_format($loyalty['points_balance']); ?></span>
+            <?php endif; ?>
+          </a>
           <a href="<?php echo site_url('account'); ?>?tab=password" class="nav-link <?php echo $tab==='password'?'active':''; ?>">
             <i class="bi bi-shield-lock me-2"></i>Change Password
           </a>
@@ -270,6 +276,165 @@
               </div>
             </div>
             <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
+      </div>
+
+      <!-- TAB: Loyalty Points -->
+      <?php elseif ($tab === 'loyalty'):
+        $tier        = $loyalty['tier'] ?? 'bronze';
+        $bal         = (int)($loyalty['points_balance'] ?? 0);
+        $earned      = (int)($loyalty['points_earned']  ?? 0);
+        $redeemed    = (int)($loyalty['points_redeemed']?? 0);
+        $tier_config = array(
+          'bronze'   => array('label'=>'Bronze',   'color'=>'#cd7f32','min'=>0,    'next'=>500,  'next_label'=>'Silver'),
+          'silver'   => array('label'=>'Silver',   'color'=>'#888',   'min'=>500,  'next'=>2000, 'next_label'=>'Gold'),
+          'gold'     => array('label'=>'Gold',     'color'=>'#f5a623','min'=>2000, 'next'=>5000, 'next_label'=>'Platinum'),
+          'platinum' => array('label'=>'Platinum', 'color'=>'#7c3aed','min'=>5000, 'next'=>null, 'next_label'=>''),
+        );
+        $tc   = $tier_config[$tier] ?? $tier_config['bronze'];
+        $prog = 0;
+        if ($tc['next']) {
+          $prog = min(100, (int)round(max(0, $earned - $tc['min']) / ($tc['next'] - $tc['min']) * 100));
+        } else {
+          $prog = 100;
+        }
+      ?>
+      <!-- Hero card -->
+      <div class="bg-white rounded-xl shadow-soft p-4 mb-4"
+           style="background:linear-gradient(135deg,<?php echo $tc['color']; ?>22,#fff)!important">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div style="width:56px;height:56px;border-radius:50%;background:<?php echo $tc['color']; ?>;
+                      display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.6rem">
+            <i class="bi bi-star-fill"></i>
+          </div>
+          <div>
+            <h5 class="mb-0" style="font-family:'Playfair Display',serif">Loyalty Points</h5>
+            <span class="badge" style="background:<?php echo $tc['color']; ?>;color:#fff;font-size:.8rem">
+              <?php echo $tc['label']; ?> Member
+            </span>
+          </div>
+          <div class="ms-auto text-end">
+            <div class="fs-2 fw-600" style="color:<?php echo $tc['color']; ?>"><?php echo number_format($bal); ?></div>
+            <small class="text-muted">Available Points</small>
+          </div>
+        </div>
+
+        <!-- Stats row -->
+        <div class="row g-2 mb-3">
+          <div class="col-4">
+            <div class="p-3 rounded-3 text-center" style="background:#f8f8f8">
+              <div class="fw-600 text-saffron"><?php echo number_format($earned); ?></div>
+              <small class="text-muted">Total Earned</small>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="p-3 rounded-3 text-center" style="background:#f8f8f8">
+              <div class="fw-600 text-danger"><?php echo number_format($redeemed); ?></div>
+              <small class="text-muted">Redeemed</small>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="p-3 rounded-3 text-center" style="background:#f8f8f8">
+              <div class="fw-600" style="color:<?php echo $tc['color']; ?>"><?php echo number_format($bal); ?></div>
+              <small class="text-muted">Balance</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tier progress -->
+        <?php if ($tc['next']): ?>
+        <div>
+          <div class="d-flex justify-content-between mb-1">
+            <small class="text-muted"><?php echo $tc['label']; ?></small>
+            <small class="text-muted"><?php echo $tc['next_label']; ?> at <?php echo number_format($tc['next']); ?> pts</small>
+          </div>
+          <div class="progress" style="height:8px;border-radius:4px">
+            <div class="progress-bar" role="progressbar"
+                 style="width:<?php echo $prog; ?>%;background:<?php echo $tc['color']; ?>;border-radius:4px"
+                 aria-valuenow="<?php echo $prog; ?>" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+          <small class="text-muted d-block mt-1">
+            <?php $pts_needed = $tc['next'] - $earned; ?>
+            <?php if ($pts_needed > 0): ?>
+              Earn <?php echo number_format($pts_needed); ?> more points to reach <?php echo $tc['next_label']; ?>
+            <?php else: ?>
+              You've reached <?php echo $tc['next_label']; ?>!
+            <?php endif; ?>
+          </small>
+        </div>
+        <?php else: ?>
+        <div class="text-center py-2">
+          <span class="badge" style="background:#7c3aed;color:#fff;padding:.5em 1.2em;font-size:.9rem">
+            <i class="bi bi-trophy me-1"></i> Highest Tier — Platinum Member
+          </span>
+        </div>
+        <?php endif; ?>
+      </div>
+
+      <!-- Tier benefits -->
+      <div class="bg-white rounded-xl shadow-soft p-4 mb-4">
+        <h6 class="mb-3 fw-600">Tier Benefits</h6>
+        <div class="row g-2">
+          <?php foreach ($tier_config as $tk => $tv): ?>
+          <div class="col-6 col-md-3">
+            <div class="p-3 rounded-3 text-center border <?php echo $tier===$tk ? 'border-2' : ''; ?>"
+                 style="<?php echo $tier===$tk ? 'border-color:'.$tv['color'].'!important;background:'.$tv['color'].'11' : ''; ?>">
+              <div class="fw-600" style="color:<?php echo $tv['color']; ?>"><?php echo $tv['label']; ?></div>
+              <small class="text-muted"><?php echo number_format($tv['min']); ?>+ pts</small>
+              <?php if ($tier === $tk): ?>
+                <div><small class="badge" style="background:<?php echo $tv['color']; ?>;color:#fff">Current</small></div>
+              <?php endif; ?>
+            </div>
+          </div>
+          <?php endforeach; ?>
+        </div>
+      </div>
+
+      <!-- Points history -->
+      <div class="bg-white rounded-xl shadow-soft p-4">
+        <h6 class="mb-3 fw-600">Points History</h6>
+        <?php if (empty($loyalty_history)): ?>
+          <div class="empty-state py-3">
+            <div class="empty-icon">⭐</div>
+            <h6 class="mt-2 text-muted">No transactions yet</h6>
+            <p class="text-muted small">Start shopping to earn loyalty points!</p>
+            <a href="<?php echo site_url('shop'); ?>" class="btn btn-saffron btn-sm mt-1">Shop Now</a>
+          </div>
+        <?php else: ?>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Date</th>
+                  <th>Description</th>
+                  <th>Type</th>
+                  <th class="text-end">Points</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($loyalty_history as $lh):
+                  $is_positive = (int)$lh['points'] >= 0;
+                  $type_labels = array(
+                    'earned'   => array('label'=>'Earned',   'class'=>'bg-success'),
+                    'redeemed' => array('label'=>'Redeemed', 'class'=>'bg-warning text-dark'),
+                    'bonus'    => array('label'=>'Bonus',    'class'=>'bg-info'),
+                    'adjusted' => array('label'=>'Adjusted', 'class'=>'bg-secondary'),
+                    'expired'  => array('label'=>'Expired',  'class'=>'bg-danger'),
+                  );
+                  $tl = $type_labels[$lh['type']] ?? array('label'=>ucfirst($lh['type']),'class'=>'bg-secondary');
+                ?>
+                <tr>
+                  <td class="text-muted small"><?php echo date('d M Y', strtotime($lh['created_at'])); ?></td>
+                  <td><?php echo htmlspecialchars($lh['note'] ?: ucfirst($lh['type']).' transaction'); ?></td>
+                  <td><span class="badge <?php echo $tl['class']; ?>"><?php echo $tl['label']; ?></span></td>
+                  <td class="text-end fw-600 <?php echo $is_positive ? 'text-success' : 'text-danger'; ?>">
+                    <?php echo $is_positive ? '+' : ''; ?><?php echo number_format((int)$lh['points']); ?>
+                  </td>
+                </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
           </div>
         <?php endif; ?>
       </div>
