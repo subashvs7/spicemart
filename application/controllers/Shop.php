@@ -12,7 +12,7 @@ class Shop extends CI_Controller {
         $data['cart_count']     = $this->spice_model->get_cart_count();
         $data['wishlist_count'] = $this->spice_model->get_wishlist_count();
         $data['all_categories'] = $this->db->query(
-            'SELECT * FROM categories WHERE status=1 ORDER BY parent_id, name'
+            'SELECT * FROM categories WHERE status=1 AND deleted_at IS NULL ORDER BY parent_id, name'
         )->result_array();
         $data['app_settings'] = $this->spice_model->get_all_settings();
     }
@@ -91,7 +91,7 @@ class Shop extends CI_Controller {
         $brands = $this->db->query(
             'SELECT b.*, COUNT(p.id) AS product_count
              FROM brands b JOIN products p ON p.brand_id=b.id
-             WHERE b.status=1 AND p.status=1
+             WHERE b.status=1 AND b.deleted_at IS NULL AND p.status=1
              GROUP BY b.id ORDER BY b.name'
         )->result_array();
 
@@ -218,12 +218,12 @@ class Shop extends CI_Controller {
         if (!$product) show_404();
 
         $variants = $this->db->query(
-            'SELECT * FROM product_variants WHERE product_id=? ORDER BY variant_type, price_modifier',
+            'SELECT * FROM product_variants WHERE product_id=? AND deleted_at IS NULL ORDER BY variant_type, price_modifier',
             array($id)
         )->result_array();
 
         $extra_images = $this->db->query(
-            'SELECT * FROM product_images WHERE product_id=? ORDER BY is_primary DESC, sort_order',
+            'SELECT * FROM product_images WHERE product_id=? AND deleted_at IS NULL ORDER BY is_primary DESC, sort_order',
             array($id)
         )->result_array();
 

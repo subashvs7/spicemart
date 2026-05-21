@@ -21,7 +21,8 @@ CREATE TABLE users (
     is_blocked    TINYINT(1)   DEFAULT 0,
     reset_token   VARCHAR(64)  DEFAULT NULL,
     reset_expires DATETIME     DEFAULT NULL,
-    created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at    DATETIME     DEFAULT NULL
 ) ENGINE=InnoDB;
 
 -- ── brands ───────────────────────────────────────────────────
@@ -31,7 +32,8 @@ CREATE TABLE brands (
     slug       VARCHAR(120) NOT NULL UNIQUE,
     image      VARCHAR(255) DEFAULT NULL,
     status     TINYINT(1)   DEFAULT 1,
-    created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME     DEFAULT NULL
 ) ENGINE=InnoDB;
 
 -- ── categories ───────────────────────────────────────────────
@@ -40,8 +42,9 @@ CREATE TABLE categories (
     parent_id INT UNSIGNED DEFAULT NULL,
     name      VARCHAR(100) NOT NULL,
     slug      VARCHAR(120) NOT NULL UNIQUE,
-    image     VARCHAR(255) DEFAULT NULL,
-    status    TINYINT(1)   DEFAULT 1
+    image      VARCHAR(255) DEFAULT NULL,
+    status     TINYINT(1)   DEFAULT 1,
+    deleted_at DATETIME     DEFAULT NULL
 ) ENGINE=InnoDB;
 
 -- ── products ─────────────────────────────────────────────────
@@ -73,7 +76,8 @@ CREATE TABLE product_images (
     product_id INT UNSIGNED NOT NULL,
     image      VARCHAR(255) NOT NULL,
     is_primary TINYINT(1)   DEFAULT 0,
-    sort_order INT          DEFAULT 0
+    sort_order INT          DEFAULT 0,
+    deleted_at DATETIME     DEFAULT NULL
 ) ENGINE=InnoDB;
 
 -- ── product_variants ─────────────────────────────────────────
@@ -85,7 +89,8 @@ CREATE TABLE product_variants (
     price_modifier DECIMAL(10,2) DEFAULT 0.00,
     stock_qty      INT UNSIGNED  DEFAULT 0,
     sku            VARCHAR(100)  DEFAULT NULL,
-    color_hex      VARCHAR(10)   DEFAULT NULL
+    color_hex      VARCHAR(10)   DEFAULT NULL,
+    deleted_at     DATETIME      DEFAULT NULL
 ) ENGINE=InnoDB;
 
 -- ── orders ───────────────────────────────────────────────────
@@ -153,7 +158,8 @@ CREATE TABLE addresses (
     city         VARCHAR(100) NOT NULL,
     state        VARCHAR(100) NOT NULL,
     pincode      VARCHAR(10)  NOT NULL,
-    is_default   TINYINT(1)   DEFAULT 0
+    is_default   TINYINT(1)   DEFAULT 0,
+    deleted_at   DATETIME     DEFAULT NULL
 ) ENGINE=InnoDB;
 
 -- ── reviews ──────────────────────────────────────────────────
@@ -163,7 +169,7 @@ CREATE TABLE reviews (
     user_id     INT UNSIGNED NOT NULL,
     rating      TINYINT(1)   NOT NULL,
     comment     TEXT         DEFAULT NULL,
-    status      ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved',
+    status      ENUM('pending','approved','rejected','deleted') NOT NULL DEFAULT 'approved',
     is_featured TINYINT(1)   NOT NULL DEFAULT 0,
     created_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uq_review (product_id, user_id),
@@ -185,7 +191,8 @@ CREATE TABLE coupons (
     restrict_to   ENUM('all','staff','specific') DEFAULT 'all',
     expires_at    DATE          DEFAULT NULL,
     status        TINYINT(1)    DEFAULT 1,
-    created_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+    created_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    deleted_at    DATETIME      DEFAULT NULL
 ) ENGINE=InnoDB;
 
 -- ── coupon_users (email allow-list for specific-user coupons) ──
@@ -247,7 +254,8 @@ CREATE TABLE campaigns (
     message       TEXT          DEFAULT NULL,
     status        ENUM('draft','active','paused','completed') DEFAULT 'draft',
     sent_count    INT           DEFAULT 0,
-    created_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+    created_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    deleted_at    DATETIME      DEFAULT NULL
 ) ENGINE=InnoDB;
 
 -- ── campaign_logs (tracks delivery per user) ──────────────────
@@ -257,6 +265,7 @@ CREATE TABLE campaign_logs (
     user_id     INT UNSIGNED NOT NULL,
     status      ENUM('sent','converted') DEFAULT 'sent',
     sent_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    deleted_at  DATETIME     DEFAULT NULL,
     KEY idx_cl_campaign (campaign_id),
     KEY idx_cl_user (user_id)
 ) ENGINE=InnoDB;
@@ -285,7 +294,8 @@ CREATE TABLE pos_api_keys (
     sync_avail   TINYINT(1)   DEFAULT 1,
     last_sync_at TIMESTAMP    DEFAULT NULL,
     status       TINYINT(1)   DEFAULT 1,
-    created_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+    created_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    deleted_at   DATETIME     DEFAULT NULL
 ) ENGINE=InnoDB;
 
 -- ── pos_sync_logs ─────────────────────────────────────────────
@@ -353,7 +363,8 @@ CREATE TABLE banners (
     type       ENUM('slider','offer','popup') DEFAULT 'slider',
     sort_order INT          DEFAULT 0,
     status     TINYINT(1)   DEFAULT 1,
-    created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME     DEFAULT NULL
 ) ENGINE=InnoDB;
 
 -- ── cms_pages ────────────────────────────────────────────────
@@ -364,7 +375,8 @@ CREATE TABLE cms_pages (
     content    LONGTEXT,
     meta_title VARCHAR(200) DEFAULT NULL,
     meta_desc  TEXT         DEFAULT NULL,
-    status     TINYINT(1)   DEFAULT 1
+    status     TINYINT(1)   DEFAULT 1,
+    deleted_at DATETIME     DEFAULT NULL
 ) ENGINE=InnoDB;
 
 -- ── contacts ─────────────────────────────────────────────────
@@ -413,7 +425,8 @@ CREATE TABLE why_choose_us (
     title       VARCHAR(150) NOT NULL,
     description TEXT         NOT NULL,
     sort_order  INT          DEFAULT 0,
-    status      TINYINT(1)   DEFAULT 1
+    status      TINYINT(1)   DEFAULT 1,
+    deleted_at  DATETIME     DEFAULT NULL
 ) ENGINE=InnoDB;
 
 -- ── testimonials ─────────────────────────────────────────────
@@ -423,7 +436,8 @@ CREATE TABLE testimonials (
     rating        TINYINT(1)   NOT NULL DEFAULT 5,
     quote         TEXT         NOT NULL,
     sort_order    INT          DEFAULT 0,
-    status        TINYINT(1)   DEFAULT 1
+    status        TINYINT(1)   DEFAULT 1,
+    deleted_at    DATETIME     DEFAULT NULL
 ) ENGINE=InnoDB;
 
 -- ============================================================

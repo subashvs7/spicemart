@@ -12,7 +12,7 @@ class Cart extends CI_Controller {
         $data['cart_count']     = $this->spice_model->get_cart_count();
         $data['wishlist_count'] = $this->spice_model->get_wishlist_count();
         $data['all_categories'] = $this->db->query(
-            'SELECT * FROM categories WHERE status=1 ORDER BY parent_id, name'
+            'SELECT * FROM categories WHERE status=1 AND deleted_at IS NULL ORDER BY parent_id, name'
         )->result_array();
         $data['app_settings'] = $this->spice_model->get_all_settings();
     }
@@ -168,7 +168,7 @@ class Cart extends CI_Controller {
         $total    = $subtotal - $discount - $fazaa_discount + $shipping;
 
         $addresses = $this->db->query(
-            'SELECT * FROM addresses WHERE user_id=? ORDER BY is_default DESC', array($user_id)
+            'SELECT * FROM addresses WHERE user_id=? AND deleted_at IS NULL ORDER BY is_default DESC', array($user_id)
         )->result_array();
 
         $razorpay_key = $this->spice_model->get_setting('razorpay_key_id');
@@ -195,7 +195,7 @@ class Cart extends CI_Controller {
             $use_saved = (int)$this->input->post('use_saved_address');
             if ($use_saved) {
                 $addr_row = $this->db->query(
-                    'SELECT * FROM addresses WHERE id=? AND user_id=?', array($use_saved,$user_id)
+                    'SELECT * FROM addresses WHERE id=? AND user_id=? AND deleted_at IS NULL', array($use_saved,$user_id)
                 )->row_array();
                 $shipping_address = $addr_row
                     ? $addr_row['name']."\n".$addr_row['phone']."\n".$addr_row['address_line']."\n".$addr_row['city'].', '.$addr_row['state'].' - '.$addr_row['pincode']

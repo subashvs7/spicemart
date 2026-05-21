@@ -12,7 +12,7 @@ class Home extends CI_Controller {
         $data['cart_count']     = $this->spice_model->get_cart_count();
         $data['wishlist_count'] = $this->spice_model->get_wishlist_count();
         $data['all_categories'] = $this->db->query(
-            'SELECT * FROM categories WHERE status=1 ORDER BY parent_id, name'
+            'SELECT * FROM categories WHERE status=1 AND deleted_at IS NULL ORDER BY parent_id, name'
         )->result_array();
         $data['app_settings'] = $this->spice_model->get_all_settings();
     }
@@ -26,7 +26,7 @@ class Home extends CI_Controller {
         )->result_array();
 
         $categories = $this->db->query(
-            'SELECT * FROM categories WHERE status=1 AND parent_id IS NULL ORDER BY id LIMIT 8'
+            'SELECT * FROM categories WHERE status=1 AND deleted_at IS NULL AND parent_id IS NULL ORDER BY id LIMIT 8'
         )->result_array();
 
         $featured = $this->db->query(
@@ -140,7 +140,7 @@ class Home extends CI_Controller {
         }
 
         $addresses = $this->db->query(
-            'SELECT * FROM addresses WHERE user_id=? ORDER BY is_default DESC', array($user_id)
+            'SELECT * FROM addresses WHERE user_id=? AND deleted_at IS NULL ORDER BY is_default DESC', array($user_id)
         )->result_array();
 
         $wishlist = array();
@@ -273,13 +273,13 @@ class Home extends CI_Controller {
 
         if ($this->input->get('delete')) {
             $aid = (int)$this->input->get('delete');
-            $this->db->query('DELETE FROM addresses WHERE id=? AND user_id=?', array($aid,$user_id));
+            $this->db->query('UPDATE addresses SET deleted_at=NOW() WHERE id=? AND user_id=?', array($aid,$user_id));
             redirect('my-addresses');
         }
 
         $data['js']        = 'account.inc';
         $data['addresses'] = $this->db->query(
-            'SELECT * FROM addresses WHERE user_id=? ORDER BY is_default DESC', array($user_id)
+            'SELECT * FROM addresses WHERE user_id=? AND deleted_at IS NULL ORDER BY is_default DESC', array($user_id)
         )->result_array();
         $data['errors']  = $errors;
         $data['success'] = $success;

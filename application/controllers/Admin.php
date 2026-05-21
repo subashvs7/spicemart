@@ -90,8 +90,8 @@ class Admin extends CI_Controller {
         $this->_admin_base($data);
 
         $errors = array(); $success = '';
-        $categories = $this->db->query('SELECT id,name FROM categories WHERE status=1 ORDER BY name')->result_array();
-        $brands     = $this->db->query('SELECT id,name FROM brands WHERE status=1 ORDER BY name')->result_array();
+        $categories = $this->db->query('SELECT id,name FROM categories WHERE status=1 AND deleted_at IS NULL ORDER BY name')->result_array();
+        $brands     = $this->db->query('SELECT id,name FROM brands WHERE status=1 AND deleted_at IS NULL ORDER BY name')->result_array();
 
         if ($this->input->server('REQUEST_METHOD') === 'POST') {
             $post_id     = (int)$this->input->post('product_id');
@@ -282,11 +282,11 @@ class Admin extends CI_Controller {
         $action  = $this->input->get('action') ?: '';
         $edit_id = (int)$this->input->get('edit');
         if ($action === 'delete' && $edit_id) {
-            $count = (int)$this->db->query('SELECT COUNT(*) AS cnt FROM products WHERE category_id=?', array($edit_id))->row()->cnt;
+            $count = (int)$this->db->query('SELECT COUNT(*) AS cnt FROM products WHERE category_id=? AND status=1', array($edit_id))->row()->cnt;
             if ($count > 0) {
                 $this->session->set_flashdata('danger','Cannot delete — '.$count.' product(s) are linked.');
             } else {
-                $this->db->query('DELETE FROM categories WHERE id=?', array($edit_id));
+                $this->db->query('UPDATE categories SET deleted_at=NOW() WHERE id=?', array($edit_id));
                 $this->session->set_flashdata('success','Category deleted.');
             }
             redirect('admin-categories');
@@ -296,6 +296,7 @@ class Admin extends CI_Controller {
             'SELECT c.*, p.name AS parent_name,
                     (SELECT COUNT(*) FROM products WHERE category_id=c.id) AS product_count
              FROM categories c LEFT JOIN categories p ON p.id=c.parent_id
+             WHERE c.deleted_at IS NULL
              ORDER BY c.parent_id, c.name'
         )->result_array();
 
@@ -356,12 +357,12 @@ class Admin extends CI_Controller {
         $action  = $this->input->get('action') ?: '';
         $edit_id = (int)$this->input->get('edit');
         if ($action === 'delete' && $edit_id) {
-            $this->db->query('DELETE FROM brands WHERE id=?', array($edit_id));
+            $this->db->query('UPDATE brands SET deleted_at=NOW() WHERE id=?', array($edit_id));
             redirect('admin-brands');
         }
 
         $brands = $this->db->query(
-            'SELECT b.*, (SELECT COUNT(*) FROM products WHERE brand_id=b.id) AS product_count FROM brands b ORDER BY b.name'
+            'SELECT b.*, (SELECT COUNT(*) FROM products WHERE brand_id=b.id) AS product_count FROM brands b WHERE b.deleted_at IS NULL ORDER BY b.name'
         )->result_array();
 
         $data['js']      = 'admin-brands.inc';
@@ -478,7 +479,7 @@ class Admin extends CI_Controller {
         $customers = $this->db->query(
             "SELECT u.*, COUNT(DISTINCT o.id) AS order_count, COALESCE(SUM(o.total_amount),0) AS total_spent
              FROM users u LEFT JOIN orders o ON o.user_id=u.id
-             WHERE u.role='customer'
+             WHERE u.role='customer' AND u.deleted_at IS NULL
              GROUP BY u.id ORDER BY u.created_at DESC"
         )->result_array();
 
@@ -486,7 +487,7 @@ class Admin extends CI_Controller {
         $view_id       = (int)$this->input->get('view');
         if ($view_id) {
             $view_customer = $this->db->query(
-                'SELECT * FROM users WHERE id=? AND role="customer"', array($view_id)
+                'SELECT * FROM users WHERE id=? AND role="customer" AND deleted_at IS NULL', array($view_id)
             )->row_array();
             if ($view_customer) {
                 $cust_orders = $this->db->query(
@@ -570,12 +571,11 @@ class Admin extends CI_Controller {
         $action  = $this->input->get('action') ?: '';
         $edit_id = (int)$this->input->get('edit');
         if ($action === 'delete' && $edit_id) {
-            $this->db->query('DELETE FROM coupons WHERE id=?', array($edit_id));
-            $this->db->query('DELETE FROM coupon_users WHERE coupon_id=?', array($edit_id));
+            $this->db->query('UPDATE coupons SET deleted_at=NOW() WHERE id=?', array($edit_id));
             redirect('admin-coupons');
         }
 
-        $coupons = $this->db->query('SELECT * FROM coupons ORDER BY created_at DESC')->result_array();
+        $coupons = $this->db->query('SELECT * FROM coupons WHERE deleted_at IS NULL ORDER BY created_at DESC')->result_array();
 
         // Attach allowed email list to each coupon for the edit modal
         $cu_raw = $this->db->query(
@@ -617,7 +617,7 @@ class Admin extends CI_Controller {
                     @unlink($file);
                 }
             }
-            $this->db->query('DELETE FROM banners WHERE id=?', array($edit_id));
+            $this->db->query('UPDATE banners SET deleted_at=NOW() WHERE id=?', array($edit_id));
             $this->session->set_flashdata('banner_msg', 'Banner deleted.');
             redirect('admin-banners');
         }
@@ -674,7 +674,7 @@ class Admin extends CI_Controller {
             }
         }
 
-        $banners = $this->db->query('SELECT * FROM banners ORDER BY type, sort_order')->result_array();
+        $banners = $this->db->query('SELECT * FROM banners WHERE deleted_at IS NULL ORDER BY type, sort_order')->result_array();
 
         $data['js']      = 'admin-banners.inc';
         $data['page']    = 'banners';
@@ -729,11 +729,11 @@ class Admin extends CI_Controller {
         $action  = $this->input->get('action') ?: '';
         $edit_id = (int)$this->input->get('edit');
         if ($action === 'delete' && $edit_id) {
-            $this->db->query('DELETE FROM cms_pages WHERE id=?', array($edit_id));
+            $this->db->query('UPDATE cms_pages SET deleted_at=NOW() WHERE id=?', array($edit_id));
             redirect('admin-cms');
         }
 
-        $pages = $this->db->query('SELECT * FROM cms_pages ORDER BY title')->result_array();
+        $pages = $this->db->query('SELECT * FROM cms_pages WHERE deleted_at IS NULL ORDER BY title')->result_array();
 
         $data['js']      = 'admin-cms.inc';
         $data['page']    = 'cms';
@@ -796,11 +796,11 @@ class Admin extends CI_Controller {
         $action  = $this->input->get('action') ?: '';
         $edit_id = (int)$this->input->get('edit');
         if ($action === 'delete' && $edit_id) {
-            $this->db->query('DELETE FROM why_choose_us WHERE id=?', array($edit_id));
+            $this->db->query('UPDATE why_choose_us SET deleted_at=NOW() WHERE id=?', array($edit_id));
             redirect('admin-why-choose-us');
         }
 
-        $items = $this->db->query('SELECT * FROM why_choose_us ORDER BY sort_order, id')->result_array();
+        $items = $this->db->query('SELECT * FROM why_choose_us WHERE deleted_at IS NULL ORDER BY sort_order, id')->result_array();
 
         $data['page']      = 'why_choose_us';
         $data['items']     = $items;
@@ -864,11 +864,11 @@ class Admin extends CI_Controller {
         $action  = $this->input->get('action') ?: '';
         $edit_id = (int)$this->input->get('edit');
         if ($action === 'delete' && $edit_id) {
-            $this->db->query('DELETE FROM testimonials WHERE id=?', array($edit_id));
+            $this->db->query('UPDATE testimonials SET deleted_at=NOW() WHERE id=?', array($edit_id));
             redirect('admin-testimonials');
         }
 
-        $testimonials = $this->db->query('SELECT * FROM testimonials ORDER BY sort_order, id')->result_array();
+        $testimonials = $this->db->query('SELECT * FROM testimonials WHERE deleted_at IS NULL ORDER BY sort_order, id')->result_array();
 
         $data['page']         = 'testimonials';
         $data['testimonials'] = $testimonials;
@@ -1272,12 +1272,12 @@ class Admin extends CI_Controller {
             $auto_count = 0;
 
             // Birthday campaigns
-            $bday_campaigns = $this->db->query("SELECT * FROM campaigns WHERE type='birthday' AND status='active'")->result_array();
+            $bday_campaigns = $this->db->query("SELECT * FROM campaigns WHERE type='birthday' AND status='active' AND deleted_at IS NULL")->result_array();
             foreach ($bday_campaigns as $camp) {
                 $bday_users = $this->db->query(
                     "SELECT u.id FROM users u JOIN user_loyalty ul ON ul.user_id=u.id
                      WHERE DATE_FORMAT(ul.birthday,'%m-%d')=DATE_FORMAT(NOW(),'%m-%d')
-                     AND ul.birthday IS NOT NULL AND u.role='customer'"
+                     AND ul.birthday IS NOT NULL AND u.role='customer' AND u.deleted_at IS NULL"
                 )->result_array();
                 foreach ($bday_users as $u) {
                     $exists = $this->db->query('SELECT id FROM campaign_logs WHERE campaign_id=? AND user_id=? AND DATE(sent_at)=CURDATE()', array($camp['id'],$u['id']))->row();
@@ -1292,10 +1292,10 @@ class Admin extends CI_Controller {
             }
 
             // Anniversary campaigns (account creation anniversary)
-            $anni_campaigns = $this->db->query("SELECT * FROM campaigns WHERE type='anniversary' AND status='active'")->result_array();
+            $anni_campaigns = $this->db->query("SELECT * FROM campaigns WHERE type='anniversary' AND status='active' AND deleted_at IS NULL")->result_array();
             foreach ($anni_campaigns as $camp) {
                 $anni_users = $this->db->query(
-                    "SELECT id FROM users WHERE role='customer'
+                    "SELECT id FROM users WHERE role='customer' AND deleted_at IS NULL
                      AND DATE_FORMAT(created_at,'%m-%d')=DATE_FORMAT(NOW(),'%m-%d')
                      AND YEAR(NOW())>YEAR(created_at)"
                 )->result_array();
@@ -1318,8 +1318,8 @@ class Admin extends CI_Controller {
         // ── Delete campaign ────────────────────────────────────────
         if ($this->input->get('del_campaign')) {
             $cid = (int)$this->input->get('del_campaign');
-            $this->db->query('DELETE FROM campaigns WHERE id=?', array($cid));
-            $this->db->query('DELETE FROM campaign_logs WHERE campaign_id=?', array($cid));
+            $this->db->query('UPDATE campaigns SET deleted_at=NOW() WHERE id=?', array($cid));
+            $this->db->query('UPDATE campaign_logs SET deleted_at=NOW() WHERE campaign_id=?', array($cid));
             redirect('admin-loyalty');
         }
 
@@ -1337,7 +1337,7 @@ class Admin extends CI_Controller {
         $customers = $this->_get_segment_users('all');
 
         // Campaigns
-        $campaigns = $this->db->query('SELECT c.*, (SELECT COUNT(*) FROM campaign_logs WHERE campaign_id=c.id) AS actual_sent FROM campaigns c ORDER BY c.created_at DESC')->result_array();
+        $campaigns = $this->db->query('SELECT c.*, (SELECT COUNT(*) FROM campaign_logs WHERE campaign_id=c.id) AS actual_sent FROM campaigns c WHERE c.deleted_at IS NULL ORDER BY c.created_at DESC')->result_array();
 
         // Recent ledger (last 100 entries)
         $ledger = $this->db->query(
@@ -1348,7 +1348,7 @@ class Admin extends CI_Controller {
         $total_pts_issued   = (int)$this->db->query("SELECT COALESCE(SUM(points),0) AS t FROM loyalty_ledger WHERE points>0")->row()->t;
         $total_pts_redeemed = (int)$this->db->query("SELECT COALESCE(SUM(ABS(points)),0) AS t FROM loyalty_ledger WHERE points<0")->row()->t;
         $total_enrolled     = (int)$this->db->query("SELECT COUNT(*) AS cnt FROM user_loyalty WHERE points_earned>0")->row()->cnt;
-        $active_campaigns   = (int)$this->db->query("SELECT COUNT(*) AS cnt FROM campaigns WHERE status='active'")->row()->cnt;
+        $active_campaigns   = (int)$this->db->query("SELECT COUNT(*) AS cnt FROM campaigns WHERE status='active' AND deleted_at IS NULL")->row()->cnt;
 
         $data['js']                  = 'admin-loyalty.inc';
         $data['page']                = 'loyalty';
@@ -1410,7 +1410,7 @@ class Admin extends CI_Controller {
              FROM users u
              LEFT JOIN orders o   ON o.user_id=u.id AND o.status NOT IN ('cancelled')
              LEFT JOIN user_loyalty ul ON ul.user_id=u.id
-             WHERE u.role='customer' AND u.is_blocked=0
+             WHERE u.role='customer' AND u.is_blocked=0 AND u.deleted_at IS NULL
              GROUP BY u.id
              $having
              ORDER BY u.created_at DESC"
@@ -1459,12 +1459,12 @@ class Admin extends CI_Controller {
 
         if ($this->input->get('delete')) {
             $uid = (int)$this->input->get('delete');
-            $this->db->query('DELETE FROM users WHERE id=? AND role IN ("admin","staff")', array($uid));
+            $this->db->query('UPDATE users SET deleted_at=NOW() WHERE id=? AND role IN ("admin","staff")', array($uid));
             redirect('admin-roles');
         }
 
         $admins = $this->db->query(
-            'SELECT * FROM users WHERE role IN ("admin","staff") ORDER BY role, name'
+            'SELECT * FROM users WHERE role IN ("admin","staff") AND deleted_at IS NULL ORDER BY role, name'
         )->result_array();
 
         $data['js']      = 'admin-roles.inc';
@@ -1547,8 +1547,8 @@ class Admin extends CI_Controller {
 
         $this->_admin_base($data);
 
-        $categories = $this->db->query('SELECT id,name FROM categories WHERE status=1 ORDER BY name')->result_array();
-        $brands     = $this->db->query('SELECT id,name FROM brands WHERE status=1 ORDER BY name')->result_array();
+        $categories = $this->db->query('SELECT id,name FROM categories WHERE status=1 AND deleted_at IS NULL ORDER BY name')->result_array();
+        $brands     = $this->db->query('SELECT id,name FROM brands WHERE status=1 AND deleted_at IS NULL ORDER BY name')->result_array();
 
         $product = $this->db->query('SELECT * FROM products WHERE id=?', array($product_id))->row_array();
         if (!$product) redirect('admin-products');
@@ -1602,11 +1602,11 @@ class Admin extends CI_Controller {
         }
 
         $variants = $this->db->query(
-            'SELECT * FROM product_variants WHERE product_id=? ORDER BY variant_type, id', array($product_id)
+            'SELECT * FROM product_variants WHERE product_id=? AND deleted_at IS NULL ORDER BY variant_type, id', array($product_id)
         )->result_array();
 
         $gallery = $this->db->query(
-            'SELECT * FROM product_images WHERE product_id=? ORDER BY is_primary DESC, sort_order', array($product_id)
+            'SELECT * FROM product_images WHERE product_id=? AND deleted_at IS NULL ORDER BY is_primary DESC, sort_order', array($product_id)
         )->result_array();
 
         $data['page']       = 'products';
@@ -1634,7 +1634,7 @@ class Admin extends CI_Controller {
         $product_id = (int)$product_id;
 
         $images = $this->db->query(
-            'SELECT * FROM product_images WHERE product_id=? ORDER BY is_primary DESC, sort_order',
+            'SELECT * FROM product_images WHERE product_id=? AND deleted_at IS NULL ORDER BY is_primary DESC, sort_order',
             array($product_id)
         )->result_array();
 
@@ -1661,7 +1661,7 @@ class Admin extends CI_Controller {
         }
 
         $variants = $this->db->query(
-            'SELECT * FROM product_variants WHERE product_id=? ORDER BY variant_type, variant_value',
+            'SELECT * FROM product_variants WHERE product_id=? AND deleted_at IS NULL ORDER BY variant_type, variant_value',
             array($product_id)
         )->result_array();
 
@@ -1713,7 +1713,7 @@ class Admin extends CI_Controller {
     {
         $this->_require_admin();
         header('Content-Type: application/json');
-        $this->db->query('DELETE FROM product_variants WHERE id=?', array((int)$variant_id));
+        $this->db->query('UPDATE product_variants SET deleted_at=NOW() WHERE id=?', array((int)$variant_id));
         echo json_encode(array('success'=>true));
     }
 
@@ -1736,7 +1736,7 @@ class Admin extends CI_Controller {
         $count    = count($files['name']);
 
         $has_existing = (int)$this->db->query(
-            'SELECT COUNT(*) AS cnt FROM product_images WHERE product_id=?', array($product_id)
+            'SELECT COUNT(*) AS cnt FROM product_images WHERE product_id=? AND deleted_at IS NULL', array($product_id)
         )->row()->cnt;
 
         $this->load->library('upload', array(
@@ -1792,15 +1792,13 @@ class Admin extends CI_Controller {
         header('Content-Type: application/json');
         $image_id = (int)$image_id;
 
-        $img = $this->db->query('SELECT * FROM product_images WHERE id=?', array($image_id))->row_array();
+        $img = $this->db->query('SELECT * FROM product_images WHERE id=? AND deleted_at IS NULL', array($image_id))->row_array();
         if ($img) {
-            $file = FCPATH.'uploads/products/'.$img['image'];
-            if (file_exists($file)) @unlink($file);
-            $this->db->query('DELETE FROM product_images WHERE id=?', array($image_id));
+            $this->db->query('UPDATE product_images SET deleted_at=NOW() WHERE id=?', array($image_id));
 
             if ($img['is_primary']) {
                 $next = $this->db->query(
-                    'SELECT id FROM product_images WHERE product_id=? ORDER BY sort_order LIMIT 1',
+                    'SELECT id FROM product_images WHERE product_id=? AND deleted_at IS NULL ORDER BY sort_order LIMIT 1',
                     array($img['product_id'])
                 )->row();
                 if ($next) {
@@ -1965,7 +1963,7 @@ class Admin extends CI_Controller {
         }
         if ($this->input->get('delete_key')) {
             $kid = (int)$this->input->get('delete_key');
-            $this->db->query('DELETE FROM pos_api_keys WHERE id=?', array($kid));
+            $this->db->query('UPDATE pos_api_keys SET deleted_at=NOW() WHERE id=?', array($kid));
             redirect('admin-pos?tab=keys');
         }
 
@@ -2023,7 +2021,7 @@ class Admin extends CI_Controller {
         // ── Data ──────────────────────────────────────────────────
         $api_keys = $this->db->query(
             'SELECT k.*, (SELECT COUNT(*) FROM pos_sync_logs WHERE api_key_id=k.id) AS sync_count
-             FROM pos_api_keys k ORDER BY k.created_at DESC'
+             FROM pos_api_keys k WHERE k.deleted_at IS NULL ORDER BY k.created_at DESC'
         )->result_array();
 
         $tab = $this->input->get('tab') ?: 'overview';
@@ -2289,7 +2287,7 @@ class Admin extends CI_Controller {
                SUM(status='rejected')  AS rejected,
                SUM(is_featured=1)      AS featured,
                COALESCE(ROUND(AVG(CASE WHEN status='approved' THEN rating END),1),0) AS avg_rating
-             FROM reviews"
+             FROM reviews WHERE status != 'deleted'"
         )->row_array();
 
         $rating_dist = $this->db->query(
@@ -2297,7 +2295,7 @@ class Admin extends CI_Controller {
         )->result_array();
 
         // ── Filtered list ─────────────────────────────────────────
-        $where = '1=1'; $params = array();
+        $where = "r.status != 'deleted'"; $params = array();
         if ($filter_status)       { $where .= ' AND r.status=?';           $params[] = $filter_status; }
         if ($filter_rating > 0)   { $where .= ' AND r.rating=?';           $params[] = $filter_rating; }
         if ($filter_date)         { $where .= ' AND DATE(r.created_at)>=?'; $params[] = $filter_date; }
@@ -2362,7 +2360,7 @@ class Admin extends CI_Controller {
                 echo json_encode(array('success'=>true,'message'=>count($ids).' review(s) rejected.','bulk'=>true,'new_status'=>'rejected','ids'=>$ids)); return;
             }
             if ($bulk_action === 'delete') {
-                $this->db->query("DELETE FROM reviews WHERE id IN ($placeholders)", $ids);
+                $this->db->query("UPDATE reviews SET status='deleted' WHERE id IN ($placeholders)", $ids);
                 echo json_encode(array('success'=>true,'message'=>count($ids).' review(s) deleted.','bulk'=>true,'deleted'=>true,'ids'=>$ids)); return;
             }
             echo json_encode(array('success'=>false,'message'=>'Unknown bulk action.')); return;
@@ -2380,7 +2378,7 @@ class Admin extends CI_Controller {
         );
 
         if ($action === 'delete') {
-            $this->db->query('DELETE FROM reviews WHERE id=?', array($review_id));
+            $this->db->query("UPDATE reviews SET status='deleted' WHERE id=?", array($review_id));
             echo json_encode(array('success'=>true,'message'=>'Review deleted.','deleted'=>true,'review_id'=>$review_id)); return;
         }
 
