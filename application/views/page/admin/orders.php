@@ -76,7 +76,7 @@
       <div class="box-body">
 
         <!-- Status Update Form -->
-        <form method="post" action="<?php echo site_url('admin-orders'); ?>" class="margin-b-15">
+        <form method="post" action="<?php echo site_url('admin-orders').'?view='.$view_order['id'].($filter_status ? '&amp;status='.$filter_status : ''); ?>" class="margin-b-15">
           <input type="hidden" name="order_id" value="<?php echo $view_order['id']; ?>">
           <div class="form-group">
             <label class="text-muted small">Order Status</label>
@@ -104,7 +104,7 @@
               </div>
             </div>
           </div>
-          <button type="submit" name="update_status" class="btn btn-saffron btn-sm btn-block">
+          <button type="submit" name="update_status" value="1" class="btn btn-saffron btn-sm btn-block">
             <i class="fa fa-save"></i> Update Order
           </button>
         </form>
@@ -139,6 +139,15 @@
                style="object-fit:cover;border-radius:7px;float:left;margin-right:10px">
           <div>
             <strong><?php echo htmlspecialchars($oi['product_name']); ?></strong><br>
+            <small class="text-muted">
+              ID: <strong>#<?php echo (int)$oi['product_id']; ?></strong>
+              <?php if (!empty($oi['sku'])): ?>
+                &nbsp;| SKU: <strong><?php echo htmlspecialchars($oi['sku']); ?></strong>
+              <?php endif; ?>
+              <?php if (!empty($oi['variant_label'])): ?>
+                &nbsp;| <?php echo htmlspecialchars($oi['variant_label']); ?>
+              <?php endif; ?>
+            </small><br>
             <small class="text-muted">Qty: <?php echo $oi['quantity']; ?> × <?php echo $this->spice_model->rupees((float)$oi['unit_price']); ?></small>
           </div>
         </div>

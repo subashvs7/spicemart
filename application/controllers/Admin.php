@@ -131,6 +131,16 @@ class Admin extends CI_Controller {
 
             if (empty($errors)) {
                 $slug = $this->spice_model->make_slug($name);
+                $slug_conflict = $this->db->query(
+                    'SELECT id FROM products WHERE slug=? AND id!=?',
+                    array($slug, $post_id ?: 0)
+                )->row();
+                if ($slug_conflict) {
+                    $errors[] = 'A product with the name "'.htmlspecialchars($name).'" already exists. Please use a different name.';
+                }
+            }
+
+            if (empty($errors)) {
                 if ($post_id) {
                     $this->db->query(
                         'UPDATE products SET category_id=?,brand_id=?,name=?,slug=?,description=?,price=?,offer_price=?,gst=?,stock_qty=?,weight=?,image=?,tags=?,meta_title=?,meta_desc=?,is_featured=?,status=? WHERE id=?',
@@ -142,8 +152,34 @@ class Admin extends CI_Controller {
                         'INSERT INTO products (category_id,brand_id,name,slug,description,price,offer_price,gst,stock_qty,weight,image,tags,meta_title,meta_desc,is_featured,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
                         array($cat_id,$brand_id,$name,$slug,$description,$price,$offer_price,$gst,$stock_qty,$weight,$image_name,$tags,$meta_title,$meta_desc,$is_featured,$status)
                     );
+                    $new_id = $this->db->insert_id();
+                    $this->db->query(
+                        'UPDATE products SET product_code=? WHERE id=?',
+                        array('PRD-'.str_pad($new_id, 5, '0', STR_PAD_LEFT), $new_id)
+                    );
                     $success = 'Product added.';
                 }
+            }
+
+            if (!empty($errors)) {
+                $data['form_data'] = array(
+                    'product_id'  => $post_id,
+                    'name'        => $name,
+                    'category_id' => $cat_id,
+                    'brand_id'    => $brand_id ?: '',
+                    'description' => $description,
+                    'price'       => $price,
+                    'offer_price' => $offer_price ?: '',
+                    'gst'         => $gst,
+                    'stock_qty'   => $stock_qty,
+                    'weight'      => $weight,
+                    'tags'        => $tags,
+                    'meta_title'  => $meta_title,
+                    'meta_desc'   => $meta_desc,
+                    'is_featured' => $is_featured,
+                    'status'      => $status,
+                    'image'       => $image_name,
+                );
             }
         }
 
@@ -185,6 +221,7 @@ class Admin extends CI_Controller {
         $data['errors']     = $errors;
         $data['success']    = $success;
         $data['filter_low'] = $filter_low;
+        if (!isset($data['form_data'])) $data['form_data'] = array();
 
         $this->load->view('inc/header', $data);
         $this->load->view('inc/left-menu', $data);

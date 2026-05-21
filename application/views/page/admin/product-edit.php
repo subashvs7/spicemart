@@ -20,6 +20,11 @@ $pri_img_url= site_url('admin-image-primary/');
       <strong><?php echo htmlspecialchars($product['name']); ?></strong>
     </h3>
     <div class="box-tools pull-right">
+      <?php if (!empty($product['product_code'])): ?>
+        <span class="label label-default" style="font-size:13px;letter-spacing:1px;padding:5px 10px;margin-right:8px">
+          <i class="fa fa-barcode"></i> <?php echo htmlspecialchars($product['product_code']); ?>
+        </span>
+      <?php endif; ?>
       <a href="<?php echo site_url('product/'.$pid); ?>" target="_blank" class="btn btn-sm btn-default">
         <i class="fa fa-eye"></i> View on Site
       </a>
@@ -342,8 +347,15 @@ $pri_img_url= site_url('admin-image-primary/');
             </div>
             <div class="col-md-2">
               <div class="form-group">
-                <label>SKU <small class="text-muted">(optional)</small></label>
-                <input type="text" class="form-control" id="variantSku" placeholder="SM-001-100G">
+                <label>SKU <small class="text-muted">(auto)</small></label>
+                <div class="input-group">
+                  <input type="text" class="form-control" id="variantSku"
+                         data-auto="1" placeholder="Auto-generated">
+                  <span class="input-group-btn">
+                    <button type="button" class="btn btn-default" id="varSkuGenBtn"
+                            title="Re-generate SKU"><i class="fa fa-magic"></i></button>
+                  </span>
+                </div>
               </div>
             </div>
           </div>

@@ -46,11 +46,12 @@ CREATE TABLE categories (
 
 -- ── products ─────────────────────────────────────────────────
 CREATE TABLE products (
-    id          INT UNSIGNED  AUTO_INCREMENT PRIMARY KEY,
-    category_id INT UNSIGNED  NOT NULL,
-    brand_id    INT UNSIGNED  DEFAULT NULL,
-    name        VARCHAR(150)  NOT NULL,
-    slug        VARCHAR(160)  NOT NULL UNIQUE,
+    id           INT UNSIGNED  AUTO_INCREMENT PRIMARY KEY,
+    product_code VARCHAR(20)   DEFAULT NULL UNIQUE,
+    category_id  INT UNSIGNED  NOT NULL,
+    brand_id     INT UNSIGNED  DEFAULT NULL,
+    name         VARCHAR(150)  NOT NULL,
+    slug         VARCHAR(160)  NOT NULL UNIQUE,
     description TEXT          DEFAULT NULL,
     price       DECIMAL(10,2) NOT NULL,
     offer_price DECIMAL(10,2) DEFAULT NULL,
@@ -113,6 +114,7 @@ CREATE TABLE order_items (
     product_id    INT UNSIGNED  NOT NULL,
     product_name  VARCHAR(150)  NOT NULL,
     variant_label VARCHAR(200)  DEFAULT NULL,
+    sku           VARCHAR(100)  DEFAULT NULL,
     quantity      INT UNSIGNED  NOT NULL DEFAULT 1,
     unit_price    DECIMAL(10,2) NOT NULL
 ) ENGINE=InnoDB;

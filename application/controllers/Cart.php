@@ -225,8 +225,8 @@ class Cart extends CI_Controller {
                 foreach ($items as $it) {
                     $price = $it['offer_price'] ?: $it['price'];
                     $this->db->query(
-                        'INSERT INTO order_items (order_id,product_id,product_name,variant_label,quantity,unit_price) VALUES (?,?,?,?,?,?)',
-                        array($order_id, $it['product_id'], $it['name'], $it['variant_label'] ?? '', $it['quantity'], $price)
+                        'INSERT INTO order_items (order_id,product_id,product_name,variant_label,sku,quantity,unit_price) VALUES (?,?,?,?,?,?,?)',
+                        array($order_id, $it['product_id'], $it['name'], $it['variant_label'] ?? '', $it['sku'] ?? '', $it['quantity'], $price)
                     );
                     $this->db->query(
                         'UPDATE products SET stock_qty=stock_qty-? WHERE id=?',

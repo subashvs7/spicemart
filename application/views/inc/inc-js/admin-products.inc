@@ -1,6 +1,8 @@
 <script>
 $(function () {
 
+  var pmSkuAuto = true; // tracks whether SKU field is in auto-generate mode
+
   /* ════════════════════════════════════════════════════════════
      PRODUCT MODAL — ADD mode
   ════════════════════════════════════════════════════════════ */
@@ -20,6 +22,10 @@ $(function () {
     $('#pmTitleText').text('Edit Product');
     $('#pmSaveLabel').text('Update Product');
     $('#pmFooterNote').text('Gallery & Variant changes save instantly via AJAX.');
+
+    if (p.product_code) {
+      $('#pmProductCode').text(p.product_code).show();
+    }
 
     $('#pmProductId').val(p.id);
     $('#pmExistingImage').val(p.image || '');
@@ -58,6 +64,7 @@ $(function () {
     $('#pmTabs a[href="#pm-basic"]').tab('show');
     $('#pmTitleIcon').removeClass('fa-pencil').addClass('fa-plus-circle');
     $('#pmTitleText').text('Add New Product');
+    $('#pmProductCode').text('').hide();
     $('#pmSaveLabel').text('Save Product');
     $('#pmFooterNote').text('');
     document.getElementById('pmForm').reset();
@@ -224,12 +231,39 @@ $(function () {
     });
   }
 
-  /* ── Variant type select → show/hide color picker ── */
+  /* ── SKU auto-generation ── */
+  function generateSku(type, value) {
+    var abbr = { size: 'SZ', weight: 'WT', color: 'CL', pack: 'PK' };
+    var t = abbr[type] || String(type).substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '');
+    var v = String(value).toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 12);
+    return t + (v ? '-' + v : '');
+  }
+
+  function pmAutoSku() {
+    if (!pmSkuAuto) return;
+    var type  = $('#pmVarType').val() === 'custom' ? $.trim($('#pmVarCustomType').val()) : $('#pmVarType').val();
+    var value = $.trim($('#pmVarValue').val());
+    if (type && value) $('#pmVarSku').val(generateSku(type, value));
+  }
+
   $('#pmVarType').on('change', function () {
     var val = $(this).val();
-    if (val === 'custom') { $('#pmVarCustomWrap').show(); $('#pmVarCustomType').focus(); }
-    else                  { $('#pmVarCustomWrap').hide(); $('#pmVarCustomType').val(''); }
+    if (val === 'custom') { $('#pmVarCustomType').show().focus(); }
+    else                  { $('#pmVarCustomType').hide().val(''); }
     togglePmColorPicker(val);
+    pmAutoSku();
+  });
+
+  $('#pmVarCustomType').on('input', pmAutoSku);
+  $('#pmVarValue').on('input',      pmAutoSku);
+
+  $('#pmVarSku').on('input', function () {
+    pmSkuAuto = false;
+  });
+
+  $('#pmVarSkuGenBtn').on('click', function () {
+    pmSkuAuto = true;
+    pmAutoSku();
   });
 
   function togglePmColorPicker(type) {
@@ -290,8 +324,8 @@ $(function () {
     var id    = $(this).data('id');
     var type  = $(this).data('type');
     var known = ['size','weight','color','pack'];
-    if (known.indexOf(type) >= 0) { $('#pmVarType').val(type); $('#pmVarCustomWrap').hide(); }
-    else { $('#pmVarType').val('custom'); $('#pmVarCustomWrap').show(); $('#pmVarCustomType').val(type); }
+    if (known.indexOf(type) >= 0) { $('#pmVarType').val(type); $('#pmVarCustomType').hide().val(''); }
+    else { $('#pmVarType').val('custom'); $('#pmVarCustomType').show().val(type); }
     togglePmColorPicker(type);
     if (type === 'color') {
       var hex = $(this).data('color') || '#7B4228';
@@ -299,11 +333,12 @@ $(function () {
       $('#pmVarColorHex').val(hex);
       $('#pmVarColorSwatch').css('background', hex);
     }
+    var existingSku = $(this).data('sku') || '';
     $('#pmVarEditId').val(id);
     $('#pmVarValue').val($(this).data('value'));
     $('#pmVarPrice').val($(this).data('price'));
     $('#pmVarStock').val($(this).data('stock'));
-    $('#pmVarSku').val($(this).data('sku'));
+    $('#pmVarSku').val(existingSku); pmSkuAuto = !existingSku;
     $('#pmVarFormTitle').text('Edit Variant');
     $('#pmVarFormIcon').removeClass('fa-plus-circle').addClass('fa-pencil');
     $('#pmVarSaveLabel').text('Update Variant');
@@ -334,12 +369,13 @@ $(function () {
 
   function resetPmVarForm() {
     $('#pmVarEditId').val('0'); $('#pmVarType').val('size');
-    $('#pmVarCustomWrap').hide(); $('#pmVarCustomType').val('');
+    $('#pmVarCustomType').hide().val('');
     $('#pmVarColorRow').hide();
     $('#pmVarColorPicker').val('#7B4228'); $('#pmVarColorHex').val('#7B4228');
     $('#pmVarColorSwatch').css('background','#7B4228');
     $('#pmVarValue').val(''); $('#pmVarPrice').val('0');
-    $('#pmVarStock').val('0'); $('#pmVarSku').val('');
+    $('#pmVarStock').val('0');
+    $('#pmVarSku').val(''); pmSkuAuto = true;
     $('#pmVarFormTitle').text('Add Variant');
     $('#pmVarFormIcon').removeClass('fa-pencil').addClass('fa-plus-circle');
     $('#pmVarSaveLabel').text('Add Variant');

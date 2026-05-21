@@ -22,7 +22,7 @@ class Spice_model extends CI_Model {
             'SELECT c.id AS cart_id, c.product_id, c.quantity,
                     c.variant_id, c.variant_label,
                     p.name, p.price, p.offer_price, p.image, p.stock_qty,
-                    pv.variant_type, pv.variant_value, pv.color_hex
+                    pv.variant_type, pv.variant_value, pv.color_hex, pv.sku
              FROM cart c
              JOIN products p ON p.id = c.product_id
              LEFT JOIN product_variants pv ON pv.id = c.variant_id

@@ -49,13 +49,53 @@
     <?php if ($flash_s = $this->session->flashdata('success')): ?>
       <div class="alert alert-success"><?php echo htmlspecialchars($flash_s); ?></div>
     <?php endif; ?>
-    <?php if (!empty($errors)): ?>
-      <div class="alert alert-danger">
-        <ul class="mb-0"><?php foreach($errors as $e): ?><li><?php echo htmlspecialchars($e); ?></li><?php endforeach; ?></ul>
-      </div>
-    <?php endif; ?>
     <?php if (!empty($success)): ?>
       <div class="alert alert-success"><?php echo htmlspecialchars($success); ?></div>
+    <?php endif; ?>
+    <?php if (!empty($errors) && !empty($form_data)): ?>
+    <script>
+    $(function () {
+      var fd = <?php echo json_encode($form_data); ?>;
+      var errs = <?php echo json_encode($errors); ?>;
+
+      /* Repopulate basic fields */
+      $('#pmProductId').val(fd.product_id || '0');
+      $('#pmExistingImage').val(fd.image || '');
+      $('#pmName').val(fd.name || '');
+      $('#pmDesc').val(fd.description || '');
+      $('#pmPrice').val(fd.price || '');
+      $('#pmOfferPrice').val(fd.offer_price || '');
+      $('#pmGst').val(fd.gst || '0');
+      $('#pmStock').val(fd.stock_qty || '0');
+      $('#pmWeight').val(fd.weight || '');
+      $('#pmTags').val(fd.tags || '');
+      $('#pmMetaTitle').val(fd.meta_title || '');
+      $('#pmMetaDesc').val(fd.meta_desc || '');
+      $('#pmFeatured').val(fd.is_featured || '0');
+      $('#pmStatus').val(fd.status || '1');
+      $('#pmCatId').val(fd.category_id || '');
+      $('#pmBrandId').val(fd.brand_id || '');
+
+      if (fd.product_id && fd.product_id != '0') {
+        $('#pmTitleIcon').removeClass('fa-plus-circle').addClass('fa-pencil');
+        $('#pmTitleText').text('Edit Product');
+        $('#pmSaveLabel').text('Update Product');
+        $('#pmTabGallery, #pmTabVariants').show();
+        if (fd.image) {
+          $('#pmCoverThumb').attr('src', PM.uploadBase + fd.image);
+          $('#pmCoverThumbWrap').show();
+        }
+      }
+
+      /* Show errors inside modal */
+      var html = '<strong><i class="fa fa-exclamation-triangle"></i> Please fix the following:</strong><ul style="margin:6px 0 0 0">';
+      $.each(errs, function (i, e) { html += '<li>' + e + '</li>'; });
+      html += '</ul>';
+      $('#pmModalErrors').html(html).show();
+
+      $('#productModal').modal('show');
+    });
+    </script>
     <?php endif; ?>
 
     <div class="table-responsive">
@@ -75,7 +115,12 @@
                    class="admin-thumb" alt="">
             </td>
             <td>
-              <strong><?php echo htmlspecialchars($p['name']); ?></strong><br>
+              <strong><?php echo htmlspecialchars($p['name']); ?></strong>
+              <?php if (!empty($p['product_code'])): ?>
+                <span class="label label-default" style="font-size:.7rem;letter-spacing:.8px;margin-left:4px">
+                  <i class="fa fa-barcode"></i> <?php echo htmlspecialchars($p['product_code']); ?>
+                </span>
+              <?php endif; ?><br>
               <small class="text-muted">
                 <?php echo htmlspecialchars($this->spice_model->truncate_text($p['description'] ?? '', 50)); ?>
               </small>
@@ -159,6 +204,10 @@
         <h4 class="modal-title" id="pmTitle" style="margin:0">
           <i class="fa fa-plus-circle" id="pmTitleIcon"></i>
           <span id="pmTitleText">Add New Product</span>
+          <span id="pmProductCode" style="display:none;font-size:12px;font-weight:normal;
+                background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.35);
+                border-radius:4px;padding:2px 9px;margin-left:10px;letter-spacing:1px;
+                vertical-align:middle"></span>
         </h4>
       </div>
 
@@ -196,6 +245,8 @@
                   enctype="multipart/form-data">
               <input type="hidden" name="product_id"      id="pmProductId"    value="0">
               <input type="hidden" name="existing_image"  id="pmExistingImage" value="">
+
+              <div id="pmModalErrors" class="alert alert-danger" style="display:none;margin-bottom:12px"></div>
 
               <div class="row">
                 <div class="col-md-8">
@@ -417,7 +468,7 @@
               <input type="hidden" id="pmVarEditId" value="0">
 
               <div class="row">
-                <div class="col-md-2">
+                <div class="col-md-3">
                   <div class="form-group">
                     <label class="small">Type *</label>
                     <select class="form-control input-sm" id="pmVarType">
@@ -427,16 +478,11 @@
                       <option value="pack">Pack</option>
                       <option value="custom">Custom…</option>
                     </select>
+                    <input type="text" class="form-control input-sm margin-t-5" id="pmVarCustomType"
+                           placeholder="e.g. flavor" style="display:none">
                   </div>
                 </div>
-                <div class="col-md-2" id="pmVarCustomWrap" style="display:none">
-                  <div class="form-group">
-                    <label class="small">Custom Type</label>
-                    <input type="text" class="form-control input-sm" id="pmVarCustomType"
-                           placeholder="e.g. flavor">
-                  </div>
-                </div>
-                <div class="col-md-2">
+                <div class="col-md-3">
                   <div class="form-group">
                     <label class="small">Value *</label>
                     <input type="text" class="form-control input-sm" id="pmVarValue"
@@ -460,9 +506,15 @@
                 </div>
                 <div class="col-md-2">
                   <div class="form-group">
-                    <label class="small">SKU</label>
-                    <input type="text" class="form-control input-sm" id="pmVarSku"
-                           placeholder="optional">
+                    <label class="small">SKU <span class="text-muted">(auto)</span></label>
+                    <div class="input-group input-group-sm">
+                      <input type="text" class="form-control" id="pmVarSku"
+                             data-auto="1" placeholder="Auto-generated">
+                      <span class="input-group-btn">
+                        <button type="button" class="btn btn-default" id="pmVarSkuGenBtn"
+                                title="Re-generate SKU"><i class="fa fa-magic"></i></button>
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>

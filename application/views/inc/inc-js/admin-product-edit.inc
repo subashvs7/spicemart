@@ -1,6 +1,8 @@
 <script>
 $(function () {
 
+  var skuAuto = true; // tracks whether SKU field is in auto-generate mode
+
   // ── Gallery Upload ─────────────────────────────────────────
 
   $('#uploadImagesBtn').on('click', function () {
@@ -121,6 +123,32 @@ $(function () {
     $('#galleryBadge').text($('.gallery-item').length);
   }
 
+  // ── SKU auto-generation ────────────────────────────────────
+
+  function generateSku(type, value) {
+    var abbr = { size: 'SZ', weight: 'WT', color: 'CL', pack: 'PK' };
+    var t = abbr[type] || String(type).substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '');
+    var v = String(value).toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 12);
+    return t + (v ? '-' + v : '');
+  }
+
+  function autoFillSku() {
+    if (!skuAuto) return;
+    var typeRaw = $('#variantTypeSelect').val();
+    var type    = typeRaw === 'custom' ? $.trim($('#variantTypeCustom').val()) : typeRaw;
+    var value   = $.trim($('#variantValue').val());
+    if (type && value) $('#variantSku').val(generateSku(type, value));
+  }
+
+  $('#variantSku').on('input', function () {
+    skuAuto = false;
+  });
+
+  $('#varSkuGenBtn').on('click', function () {
+    skuAuto = true;
+    autoFillSku();
+  });
+
   // ── Variant Type Dropdown — show/hide color picker ──────────
 
   $('#variantTypeSelect').on('change', function () {
@@ -128,7 +156,11 @@ $(function () {
     if (val === 'custom') { $('#variantTypeCustom').show(); }
     else                  { $('#variantTypeCustom').hide().val(''); }
     $('#editColorRow').toggle(val === 'color');
+    autoFillSku();
   });
+
+  $('#variantTypeCustom').on('input', autoFillSku);
+  $('#variantValue').on('input',      autoFillSku);
 
   // Sync color picker ↔ hex input ↔ swatch
   $('#editColorPicker').on('input', function () {
@@ -249,7 +281,7 @@ $(function () {
     $('#variantValue').val(value);
     $('#variantPrice').val(price);
     $('#variantStock').val(stock);
-    $('#variantSku').val(sku);
+    $('#variantSku').val(sku); skuAuto = !sku;
     $('#variantFormTitle').html('<i class="fa fa-pencil text-saffron"></i> Edit Variant');
     $('#saveVariantLabel').text('Update Variant');
     $('#cancelEditBtn').show();
@@ -289,7 +321,8 @@ $(function () {
     $('#variantValue').val('');
     $('#variantPrice').val('0');
     $('#variantStock').val('0');
-    $('#variantSku').val('');
+    $('#variantSku').val(''); skuAuto = true;
+    $('#editColorRow').hide();
     $('#variantFormTitle').html('<i class="fa fa-plus-circle text-saffron"></i> Add Variant');
     $('#saveVariantLabel').text('Save Variant');
     $('#cancelEditBtn').hide();
