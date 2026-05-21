@@ -89,7 +89,7 @@ class Admin extends CI_Controller {
         $this->_require_admin();
         $this->_admin_base($data);
 
-        $errors = array(); $success = '';
+        $errors = array(); $success = $this->session->flashdata('success') ?: '';
         $categories = $this->db->query('SELECT id,name FROM categories WHERE status=1 AND deleted_at IS NULL ORDER BY name')->result_array();
         $brands     = $this->db->query('SELECT id,name FROM brands WHERE status=1 AND deleted_at IS NULL ORDER BY name')->result_array();
 
@@ -146,7 +146,8 @@ class Admin extends CI_Controller {
                         'UPDATE products SET category_id=?,brand_id=?,name=?,slug=?,description=?,price=?,offer_price=?,gst=?,stock_qty=?,weight=?,image=?,tags=?,meta_title=?,meta_desc=?,is_featured=?,status=? WHERE id=?',
                         array($cat_id,$brand_id,$name,$slug,$description,$price,$offer_price,$gst,$stock_qty,$weight,$image_name,$tags,$meta_title,$meta_desc,$is_featured,$status,$post_id)
                     );
-                    $success = 'Product updated.';
+                    $this->session->set_flashdata('success', 'Product updated.');
+                    redirect('admin-products');
                 } else {
                     $this->db->query(
                         'INSERT INTO products (category_id,brand_id,name,slug,description,price,offer_price,gst,stock_qty,weight,image,tags,meta_title,meta_desc,is_featured,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
@@ -157,7 +158,8 @@ class Admin extends CI_Controller {
                         'UPDATE products SET product_code=? WHERE id=?',
                         array('PRD-'.str_pad($new_id, 5, '0', STR_PAD_LEFT), $new_id)
                     );
-                    $success = 'Product added.';
+                    $this->session->set_flashdata('success', 'Product added.');
+                    redirect('admin-products');
                 }
             }
 
@@ -236,7 +238,7 @@ class Admin extends CI_Controller {
         $this->_require_admin();
         $this->_admin_base($data);
 
-        $errors = array(); $success = '';
+        $errors = array(); $success = $this->session->flashdata('success') ?: '';
 
         if ($this->input->server('REQUEST_METHOD') === 'POST') {
             $cat_id    = (int)$this->input->post('cat_id');
@@ -268,14 +270,15 @@ class Admin extends CI_Controller {
                         'UPDATE categories SET parent_id=?,name=?,slug=?,image=?,status=? WHERE id=?',
                         array($parent_id,$name,$slug,$image_name,$status,$cat_id)
                     );
-                    $success = 'Category updated.';
+                    $this->session->set_flashdata('success', 'Category updated.');
                 } else {
                     $this->db->query(
                         'INSERT INTO categories (parent_id,name,slug,image,status) VALUES (?,?,?,?,?)',
                         array($parent_id,$name,$slug,$image_name,$status)
                     );
-                    $success = 'Category added.';
+                    $this->session->set_flashdata('success', 'Category added.');
                 }
+                redirect('admin-categories');
             }
         }
 
@@ -319,7 +322,7 @@ class Admin extends CI_Controller {
         $this->_require_admin();
         $this->_admin_base($data);
 
-        $errors = array(); $success = '';
+        $errors = array(); $success = $this->session->flashdata('success') ?: '';
 
         if ($this->input->server('REQUEST_METHOD') === 'POST') {
             $brand_id = (int)$this->input->post('brand_id');
@@ -346,11 +349,12 @@ class Admin extends CI_Controller {
                 $slug = $this->spice_model->make_slug($name);
                 if ($brand_id) {
                     $this->db->query('UPDATE brands SET name=?,slug=?,image=?,status=? WHERE id=?', array($name,$slug,$image_name,$status,$brand_id));
-                    $success = 'Brand updated.';
+                    $this->session->set_flashdata('success', 'Brand updated.');
                 } else {
                     $this->db->query('INSERT INTO brands (name,slug,image,status) VALUES (?,?,?,?)', array($name,$slug,$image_name,$status));
-                    $success = 'Brand added.';
+                    $this->session->set_flashdata('success', 'Brand added.');
                 }
+                redirect('admin-brands');
             }
         }
 
@@ -384,7 +388,7 @@ class Admin extends CI_Controller {
         $this->_require_admin();
         $this->_admin_base($data);
 
-        $errors = array(); $success = '';
+        $errors = array(); $success = $this->session->flashdata('success') ?: '';
 
         if ($this->input->post('update_status')) {
             $order_id    = (int)$this->input->post('order_id');
@@ -417,7 +421,8 @@ class Admin extends CI_Controller {
                     }
                 }
             }
-            $success = 'Order updated.';
+            $this->session->set_flashdata('success', 'Order updated.');
+            redirect('admin-orders');
         }
 
         $filter_status = $this->input->get('status') ?: '';
@@ -517,7 +522,7 @@ class Admin extends CI_Controller {
         $this->_require_admin();
         $this->_admin_base($data);
 
-        $errors = array(); $success = '';
+        $errors = array(); $success = $this->session->flashdata('success') ?: '';
 
         if ($this->input->server('REQUEST_METHOD') === 'POST') {
             $coupon_id    = (int)$this->input->post('coupon_id');
@@ -542,14 +547,14 @@ class Admin extends CI_Controller {
                         'UPDATE coupons SET code=?,type=?,value=?,min_order=?,max_discount=?,uses_limit=?,uses_per_user=?,restrict_to=?,expires_at=?,status=? WHERE id=?',
                         array($code,$type,$value,$min_order,$max_discount,$uses_limit,$uses_per_user,$restrict_to,$expires_at,$status,$coupon_id)
                     );
-                    $success = 'Coupon updated.';
+                    $this->session->set_flashdata('success', 'Coupon updated.');
                 } else {
                     $this->db->query(
                         'INSERT INTO coupons (code,type,value,min_order,max_discount,uses_limit,uses_per_user,restrict_to,expires_at,status) VALUES (?,?,?,?,?,?,?,?,?,?)',
                         array($code,$type,$value,$min_order,$max_discount,$uses_limit,$uses_per_user,$restrict_to,$expires_at,$status)
                     );
                     $coupon_id = $this->db->insert_id();
-                    $success = 'Coupon created.';
+                    $this->session->set_flashdata('success', 'Coupon created.');
                 }
 
                 // Sync coupon_users allow-list
@@ -565,6 +570,7 @@ class Admin extends CI_Controller {
                         }
                     }
                 }
+                redirect('admin-coupons');
             }
         }
 
@@ -695,7 +701,7 @@ class Admin extends CI_Controller {
         $this->_require_admin();
         $this->_admin_base($data);
 
-        $errors = array(); $success = '';
+        $errors = array(); $success = $this->session->flashdata('success') ?: '';
 
         if ($this->input->server('REQUEST_METHOD') === 'POST') {
             $page_id   = (int)$this->input->post('page_id');
@@ -715,14 +721,15 @@ class Admin extends CI_Controller {
                         'UPDATE cms_pages SET title=?,slug=?,content=?,meta_title=?,meta_desc=?,status=? WHERE id=?',
                         array($title,$slug,$content,$meta_title,$meta_desc,$status,$page_id)
                     );
-                    $success = 'Page updated.';
+                    $this->session->set_flashdata('success', 'Page updated.');
                 } else {
                     $this->db->query(
                         'INSERT INTO cms_pages (title,slug,content,meta_title,meta_desc,status) VALUES (?,?,?,?,?,?)',
                         array($title,$slug,$content,$meta_title,$meta_desc,$status)
                     );
-                    $success = 'Page created.';
+                    $this->session->set_flashdata('success', 'Page created.');
                 }
+                redirect('admin-cms');
             }
         }
 
@@ -754,7 +761,7 @@ class Admin extends CI_Controller {
         $this->_require_admin();
         $this->_admin_base($data);
 
-        $errors = array(); $success = ''; $form_data = array();
+        $errors = array(); $success = $this->session->flashdata('success') ?: ''; $form_data = array();
 
         if ($this->input->server('REQUEST_METHOD') === 'POST') {
             $item_id     = (int)$this->input->post('item_id');
@@ -773,14 +780,15 @@ class Admin extends CI_Controller {
                         'UPDATE why_choose_us SET icon=?,title=?,description=?,sort_order=?,status=? WHERE id=?',
                         array($icon,$title,$description,$sort_order,$status,$item_id)
                     );
-                    $success = 'Item updated.';
+                    $this->session->set_flashdata('success', 'Item updated.');
                 } else {
                     $this->db->query(
                         'INSERT INTO why_choose_us (icon,title,description,sort_order,status) VALUES (?,?,?,?,?)',
                         array($icon,$title,$description,$sort_order,$status)
                     );
-                    $success = 'Item added.';
+                    $this->session->set_flashdata('success', 'Item added.');
                 }
+                redirect('admin-why-choose-us');
             } else {
                 $form_data = array(
                     'id'          => $item_id,
@@ -821,7 +829,7 @@ class Admin extends CI_Controller {
         $this->_require_admin();
         $this->_admin_base($data);
 
-        $errors = array(); $success = ''; $form_data = array();
+        $errors = array(); $success = $this->session->flashdata('success') ?: ''; $form_data = array();
 
         if ($this->input->server('REQUEST_METHOD') === 'POST') {
             $testimonial_id = (int)$this->input->post('testimonial_id');
@@ -841,14 +849,15 @@ class Admin extends CI_Controller {
                         'UPDATE testimonials SET customer_name=?,rating=?,quote=?,sort_order=?,status=? WHERE id=?',
                         array($customer_name,$rating,$quote,$sort_order,$status,$testimonial_id)
                     );
-                    $success = 'Testimonial updated.';
+                    $this->session->set_flashdata('success', 'Testimonial updated.');
                 } else {
                     $this->db->query(
                         'INSERT INTO testimonials (customer_name,rating,quote,sort_order,status) VALUES (?,?,?,?,?)',
                         array($customer_name,$rating,$quote,$sort_order,$status)
                     );
-                    $success = 'Testimonial added.';
+                    $this->session->set_flashdata('success', 'Testimonial added.');
                 }
+                redirect('admin-testimonials');
             } else {
                 $form_data = array(
                     'id'            => $testimonial_id,
@@ -889,7 +898,7 @@ class Admin extends CI_Controller {
         $this->_require_admin();
         $this->_admin_base($data);
 
-        $success = ''; $error = '';
+        $success = $this->session->flashdata('success') ?: ''; $error = '';
         $allowed_statuses = array('pending','approved','rejected','resolved');
 
         // Single update
@@ -913,7 +922,8 @@ class Admin extends CI_Controller {
                     $this->db->query("UPDATE orders SET status='returned' WHERE id=?", array($ret['order_id']));
                 }
             }
-            $success = 'Request updated successfully.';
+            $this->session->set_flashdata('success', 'Request updated successfully.');
+            redirect('admin-returns');
         }
 
         // Bulk action
@@ -927,7 +937,8 @@ class Admin extends CI_Controller {
                     "UPDATE returns SET status=? WHERE id IN ($placeholders)",
                     array_merge(array($bulk_status), $ids)
                 );
-                $success = count($ids).' request(s) marked as '.ucfirst($bulk_status).'.';
+                $this->session->set_flashdata('success', count($ids).' request(s) marked as '.ucfirst($bulk_status).'.');
+                redirect('admin-returns');
             }
         }
 
@@ -1044,7 +1055,7 @@ class Admin extends CI_Controller {
         $this->_require_admin();
         $this->_admin_base($data);
 
-        $success = '';
+        $success = $this->session->flashdata('success') ?: '';
         if ($this->input->server('REQUEST_METHOD') === 'POST') {
             $keys = array(
                 'free_shipping_above','standard_charge','express_charge','estimated_days',
@@ -1061,7 +1072,8 @@ class Admin extends CI_Controller {
                     array($k,$val,$val)
                 );
             }
-            $success = 'Shipping settings saved.';
+            $this->session->set_flashdata('success', 'Shipping settings saved.');
+            redirect('admin-shipping');
         }
 
         $settings_raw = $this->db->query('SELECT * FROM shipping_settings')->result_array();
@@ -1086,7 +1098,7 @@ class Admin extends CI_Controller {
         $this->_require_admin();
         $this->_admin_base($data);
 
-        $success = '';
+        $success = $this->session->flashdata('success') ?: '';
 
         if ($this->input->server('REQUEST_METHOD') === 'POST') {
             $toggle_keys = array(
@@ -1111,7 +1123,8 @@ class Admin extends CI_Controller {
                     array($k, $val, $val)
                 );
             }
-            $success = 'Payment settings saved.';
+            $this->session->set_flashdata('success', 'Payment settings saved.');
+            redirect('admin-payments');
         }
 
         $settings_raw = $this->db->query('SELECT * FROM shipping_settings')->result_array();
@@ -1169,7 +1182,8 @@ class Admin extends CI_Controller {
                     array($k, $v, $v)
                 );
             }
-            $success = 'Loyalty settings saved.';
+            $this->session->set_flashdata('ly_success', 'Loyalty settings saved.');
+            redirect('admin-loyalty');
         }
 
         // ── Save / update campaign ─────────────────────────────────
@@ -1197,14 +1211,15 @@ class Admin extends CI_Controller {
                         'UPDATE campaigns SET name=?,type=?,description=?,offer_type=?,offer_value=?,coupon_code=?,target=?,festival_date=?,trigger_days=?,start_date=?,end_date=?,message=?,status=? WHERE id=?',
                         array($name,$type,$description,$offer_type,$offer_value,$coupon_code,$target,$fest_date,$trig_days,$start_date,$end_date,$message,$status,$cid)
                     );
-                    $success = 'Campaign updated.';
+                    $this->session->set_flashdata('ly_success', 'Campaign updated.');
                 } else {
                     $this->db->query(
                         'INSERT INTO campaigns (name,type,description,offer_type,offer_value,coupon_code,target,festival_date,trigger_days,start_date,end_date,message,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
                         array($name,$type,$description,$offer_type,$offer_value,$coupon_code,$target,$fest_date,$trig_days,$start_date,$end_date,$message,$status)
                     );
-                    $success = 'Campaign created.';
+                    $this->session->set_flashdata('ly_success', 'Campaign created.');
                 }
+                redirect('admin-loyalty');
             }
         }
 
@@ -1215,7 +1230,8 @@ class Admin extends CI_Controller {
             $note   = trim($this->input->post('adj_note') ?: 'Admin adjustment');
             if ($uid && $pts !== 0) {
                 $this->spice_model->add_loyalty_points($uid, $pts, 'adjusted', 'admin', null, $note);
-                $success = 'Points adjusted successfully.';
+                $this->session->set_flashdata('ly_success', 'Points adjusted successfully.');
+                redirect('admin-loyalty');
             }
         }
 
@@ -1228,7 +1244,8 @@ class Admin extends CI_Controller {
                     'INSERT INTO user_loyalty (user_id,birthday) VALUES (?,?) ON DUPLICATE KEY UPDATE birthday=?',
                     array($uid, $bday, $bday)
                 );
-                $success = 'Birthday updated.';
+                $this->session->set_flashdata('ly_success', 'Birthday updated.');
+                redirect('admin-loyalty');
             }
         }
 
@@ -1425,7 +1442,7 @@ class Admin extends CI_Controller {
         if ($this->session->userdata(SESS_HEAD.'_user_role') !== 'admin') redirect('admin');
         $this->_admin_base($data);
 
-        $errors = array(); $success = '';
+        $errors = array(); $success = $this->session->flashdata('success') ?: '';
 
         if ($this->input->server('REQUEST_METHOD') === 'POST') {
             $uid      = (int)$this->input->post('user_id');
@@ -1443,7 +1460,8 @@ class Admin extends CI_Controller {
                     $params = array($name,$email,$role,$perms);
                     if ($password) { $sql .= ',password=?'; $params[] = $password; }
                     $this->db->query($sql.' WHERE id=?', array_merge($params, array($uid)));
-                    $success = 'Admin user updated.';
+                    $this->session->set_flashdata('success', 'Admin user updated.');
+                    redirect('admin-roles');
                 } else {
                     if (!$password) $errors[] = 'Password is required for new user.';
                     else {
@@ -1451,7 +1469,8 @@ class Admin extends CI_Controller {
                             'INSERT INTO users (name,email,password,role,permissions) VALUES (?,?,?,?,?)',
                             array($name,$email,$password,$role,$perms)
                         );
-                        $success = 'Admin user created.';
+                        $this->session->set_flashdata('success', 'Admin user created.');
+                        redirect('admin-roles');
                     }
                 }
             }

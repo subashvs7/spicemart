@@ -245,7 +245,7 @@ class Shop extends CI_Controller {
         $avg_rating     = $this->spice_model->avg_rating($id);
         $review_count   = $this->spice_model->review_count($id);
         $error          = '';
-        $review_success = '';
+        $review_success = $this->session->flashdata('review_success') ?: '';
 
         if ($this->input->post('submit_review')) {
             if (!$this->session->userdata(SESS_HEAD.'_logged_in')) {
@@ -266,15 +266,8 @@ class Shop extends CI_Controller {
                         'INSERT INTO reviews (product_id,user_id,rating,comment) VALUES (?,?,?,?)',
                         array($id, $user_id, $rating, $comment)
                     );
-                    $review_success = 'Thank you for your review!';
-                    $reviews        = $this->db->query(
-                        'SELECT r.*, u.name AS user_name FROM reviews r
-                         JOIN users u ON u.id=r.user_id
-                         WHERE r.product_id=? AND r.status="approved"
-                         ORDER BY r.is_featured DESC, r.created_at DESC', array($id)
-                    )->result_array();
-                    $avg_rating   = $this->spice_model->avg_rating($id);
-                    $review_count = $this->spice_model->review_count($id);
+                    $this->session->set_flashdata('review_success', 'Thank you for your review! It will appear after approval.');
+                    redirect('product/'.$id);
                 }
             }
         }

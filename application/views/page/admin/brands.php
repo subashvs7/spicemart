@@ -11,9 +11,6 @@
   </div>
   <div class="box-body">
 
-    <?php $flash_s = $this->session->flashdata('success'); if ($flash_s): ?>
-      <div class="alert alert-success"><?php echo htmlspecialchars($flash_s); ?></div>
-    <?php endif; ?>
     <?php if (!empty($errors)): ?>
       <div class="alert alert-danger"><ul><?php foreach($errors as $e): ?><li><?php echo htmlspecialchars($e); ?></li><?php endforeach; ?></ul></div>
     <?php endif; ?>

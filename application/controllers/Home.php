@@ -92,9 +92,8 @@ class Home extends CI_Controller {
                     array($name, $phone, $address, $user_id)
                 );
                 $this->session->set_userdata(SESS_HEAD.'_user_name', $name);
-                $data['user_name'] = $name;
-                $success = 'Profile updated successfully.';
-                $user['name'] = $name; $user['phone'] = $phone; $user['address'] = $address;
+                $this->session->set_flashdata('success', 'Profile updated successfully.');
+                redirect('account?tab=profile');
             }
         }
 
@@ -110,7 +109,8 @@ class Home extends CI_Controller {
                 $errors[] = 'New passwords do not match.';
             } else {
                 $this->db->query('UPDATE users SET password=? WHERE id=?', array($newPass, $user_id));
-                $success = 'Password changed successfully.';
+                $this->session->set_flashdata('success', 'Password changed successfully.');
+                redirect('account?tab=profile');
             }
         }
 
@@ -233,7 +233,7 @@ class Home extends CI_Controller {
         $this->_front_base($data);
 
         $user_id = (int)$this->session->userdata(SESS_HEAD.'_user_id');
-        $errors  = array(); $success = '';
+        $errors  = array(); $success = $this->session->flashdata('success') ?: '';
 
         if ($this->input->server('REQUEST_METHOD') === 'POST') {
             $addr_id = (int)$this->input->post('addr_id');
@@ -267,7 +267,8 @@ class Home extends CI_Controller {
                         array($user_id,$label,$name,$phone,$line,$city,$state,$pin,$default)
                     );
                 }
-                $success = 'Address saved successfully.';
+                $this->session->set_flashdata('success', 'Address saved successfully.');
+                redirect('my-addresses');
             }
         }
 

@@ -46,9 +46,6 @@
   </div>
 
   <div class="box-body">
-    <?php if ($flash_s = $this->session->flashdata('success')): ?>
-      <div class="alert alert-success"><?php echo htmlspecialchars($flash_s); ?></div>
-    <?php endif; ?>
     <?php if (!empty($success)): ?>
       <div class="alert alert-success"><?php echo htmlspecialchars($success); ?></div>
     <?php endif; ?>
