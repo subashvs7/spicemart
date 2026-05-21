@@ -158,13 +158,17 @@ CREATE TABLE addresses (
 
 -- ── reviews ──────────────────────────────────────────────────
 CREATE TABLE reviews (
-    id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    product_id INT UNSIGNED NOT NULL,
-    user_id    INT UNSIGNED NOT NULL,
-    rating     TINYINT(1)   NOT NULL,
-    comment    TEXT         DEFAULT NULL,
-    created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_review (product_id, user_id)
+    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    product_id  INT UNSIGNED NOT NULL,
+    user_id     INT UNSIGNED NOT NULL,
+    rating      TINYINT(1)   NOT NULL,
+    comment     TEXT         DEFAULT NULL,
+    status      ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved',
+    is_featured TINYINT(1)   NOT NULL DEFAULT 0,
+    created_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_review (product_id, user_id),
+    KEY idx_rev_status  (status),
+    KEY idx_rev_product (product_id)
 ) ENGINE=InnoDB;
 
 -- ── coupons ──────────────────────────────────────────────────

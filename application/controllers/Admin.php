@@ -2269,6 +2269,132 @@ class Admin extends CI_Controller {
         ));
     }
 
+    // ── Reviews Management ───────────────────────────────────────
+    public function reviews()
+    {
+        $this->_require_admin();
+        $this->_admin_base($data);
+
+        $filter_status  = $this->input->get('status')   ?: '';
+        $filter_rating  = (int)$this->input->get('rating');
+        $filter_date    = $this->input->get('date_from') ?: '';
+        $filter_search  = trim($this->input->get('q')   ?: '');
+
+        // ── Stats ─────────────────────────────────────────────────
+        $stats = $this->db->query(
+            "SELECT
+               COUNT(*) AS total,
+               SUM(status='approved')  AS approved,
+               SUM(status='pending')   AS pending,
+               SUM(status='rejected')  AS rejected,
+               SUM(is_featured=1)      AS featured,
+               COALESCE(ROUND(AVG(CASE WHEN status='approved' THEN rating END),1),0) AS avg_rating
+             FROM reviews"
+        )->row_array();
+
+        $rating_dist = $this->db->query(
+            "SELECT rating, COUNT(*) AS cnt FROM reviews WHERE status='approved' GROUP BY rating ORDER BY rating DESC"
+        )->result_array();
+
+        // ── Filtered list ─────────────────────────────────────────
+        $where = '1=1'; $params = array();
+        if ($filter_status)       { $where .= ' AND r.status=?';           $params[] = $filter_status; }
+        if ($filter_rating > 0)   { $where .= ' AND r.rating=?';           $params[] = $filter_rating; }
+        if ($filter_date)         { $where .= ' AND DATE(r.created_at)>=?'; $params[] = $filter_date; }
+        if ($filter_search !== '') {
+            $where .= ' AND (u.name LIKE ? OR p.name LIKE ? OR r.comment LIKE ?)';
+            $s = '%'.$filter_search.'%';
+            $params[] = $s; $params[] = $s; $params[] = $s;
+        }
+
+        $reviews = $this->db->query(
+            "SELECT r.*, u.name AS customer_name, p.name AS product_name, p.id AS pid
+               FROM reviews r
+               JOIN users u ON u.id=r.user_id
+               JOIN products p ON p.id=r.product_id
+              WHERE $where
+              ORDER BY r.created_at DESC LIMIT 200", $params
+        )->result_array();
+
+        $data['page']           = 'reviews';
+        $data['title']          = 'Review Management';
+        $data['stats']          = $stats;
+        $data['rating_dist']    = $rating_dist;
+        $data['reviews']        = $reviews;
+        $data['filter_status']  = $filter_status;
+        $data['filter_rating']  = $filter_rating;
+        $data['filter_date']    = $filter_date;
+        $data['filter_search']  = $filter_search;
+        $data['js']             = 'admin-reviews.inc';
+
+        $this->load->view('inc/header', $data);
+        $this->load->view('inc/left-menu', $data);
+        $this->load->view('page/admin/reviews', $data);
+        $this->load->view('inc/footer', $data);
+    }
+
+    // POST  ajax/review-action
+    // Body: review_id, action (approve|reject|delete|feature|unfeature)
+    //       OR bulk_ids[], bulk_action
+    public function ajax_review_action()
+    {
+        $this->_require_admin();
+        header('Content-Type: application/json');
+
+        $bulk_ids    = $this->input->post('bulk_ids')    ?: array();
+        $bulk_action = trim($this->input->post('bulk_action') ?: '');
+        $review_id   = (int)$this->input->post('review_id');
+        $action      = trim($this->input->post('action')      ?: '');
+
+        // ── Bulk action ───────────────────────────────────────────
+        if (!empty($bulk_ids) && $bulk_action) {
+            $ids = array_map('intval', (array)$bulk_ids);
+            $ids = array_filter($ids);
+            if (empty($ids)) { echo json_encode(array('success'=>false,'message'=>'No reviews selected.')); return; }
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+            if ($bulk_action === 'approve') {
+                $this->db->query("UPDATE reviews SET status='approved' WHERE id IN ($placeholders)", $ids);
+                echo json_encode(array('success'=>true,'message'=>count($ids).' review(s) approved.','bulk'=>true,'new_status'=>'approved','ids'=>$ids)); return;
+            }
+            if ($bulk_action === 'reject') {
+                $this->db->query("UPDATE reviews SET status='rejected' WHERE id IN ($placeholders)", $ids);
+                echo json_encode(array('success'=>true,'message'=>count($ids).' review(s) rejected.','bulk'=>true,'new_status'=>'rejected','ids'=>$ids)); return;
+            }
+            if ($bulk_action === 'delete') {
+                $this->db->query("DELETE FROM reviews WHERE id IN ($placeholders)", $ids);
+                echo json_encode(array('success'=>true,'message'=>count($ids).' review(s) deleted.','bulk'=>true,'deleted'=>true,'ids'=>$ids)); return;
+            }
+            echo json_encode(array('success'=>false,'message'=>'Unknown bulk action.')); return;
+        }
+
+        // ── Single action ─────────────────────────────────────────
+        if (!$review_id) { echo json_encode(array('success'=>false,'message'=>'Invalid review.')); return; }
+
+        $map = array(
+            'approve'   => array('sql'=>"UPDATE reviews SET status='approved'  WHERE id=?", 'label'=>'Approved'),
+            'reject'    => array('sql'=>"UPDATE reviews SET status='rejected'  WHERE id=?", 'label'=>'Rejected'),
+            'pending'   => array('sql'=>"UPDATE reviews SET status='pending'   WHERE id=?", 'label'=>'Pending'),
+            'feature'   => array('sql'=>"UPDATE reviews SET is_featured=1      WHERE id=?", 'label'=>'Featured'),
+            'unfeature' => array('sql'=>"UPDATE reviews SET is_featured=0      WHERE id=?", 'label'=>'Unfeatured'),
+        );
+
+        if ($action === 'delete') {
+            $this->db->query('DELETE FROM reviews WHERE id=?', array($review_id));
+            echo json_encode(array('success'=>true,'message'=>'Review deleted.','deleted'=>true,'review_id'=>$review_id)); return;
+        }
+
+        if (!isset($map[$action])) { echo json_encode(array('success'=>false,'message'=>'Unknown action.')); return; }
+
+        $this->db->query($map[$action]['sql'], array($review_id));
+        echo json_encode(array(
+            'success'    => true,
+            'message'    => $map[$action]['label'].'.',
+            'review_id'  => $review_id,
+            'action'     => $action,
+        ));
+    }
+
     // ── Fazaa / Isaad Settings ────────────────────────────────────
     public function fazaa_settings()
     {

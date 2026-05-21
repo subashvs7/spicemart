@@ -231,14 +231,14 @@ class Spice_model extends CI_Model {
     public function avg_rating($product_id)
     {
         return round((float)$this->db->query(
-            'SELECT COALESCE(AVG(rating),0) AS avg FROM reviews WHERE product_id=?', array($product_id)
+            'SELECT COALESCE(AVG(rating),0) AS avg FROM reviews WHERE product_id=? AND status="approved"', array($product_id)
         )->row()->avg, 1);
     }
 
     public function review_count($product_id)
     {
         return (int)$this->db->query(
-            'SELECT COUNT(*) AS cnt FROM reviews WHERE product_id=?', array($product_id)
+            'SELECT COUNT(*) AS cnt FROM reviews WHERE product_id=? AND status="approved"', array($product_id)
         )->row()->cnt;
     }
 

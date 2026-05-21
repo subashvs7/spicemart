@@ -13,7 +13,7 @@
 
     <?php
     $in_catalog   = in_array($page, array('products','categories','brands'));
-    $in_sales     = in_array($page, array('orders','customers','returns'));
+    $in_sales     = in_array($page, array('orders','customers','returns','reviews'));
     $in_marketing = in_array($page, array('coupons','banners','loyalty'));
     $in_content   = in_array($page, array('cms','why_choose_us','testimonials'));
     $in_settings  = in_array($page, array('shipping','payments'));
@@ -89,6 +89,11 @@
               <?php if (isset($pending_returns) && $pending_returns > 0): ?>
                 <span class="pull-right-container"><small class="badge pull-right bg-yellow"><?php echo $pending_returns; ?></small></span>
               <?php endif; ?>
+            </a>
+          </li>
+          <li <?php echo $page === 'reviews' ? 'class="active"' : ''; ?>>
+            <a href="<?php echo site_url('admin-reviews') ?>">
+              <i class="fa fa-star-o"></i> Reviews
             </a>
           </li>
         </ul>

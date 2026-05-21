@@ -230,7 +230,7 @@ class Shop extends CI_Controller {
         $reviews = $this->db->query(
             'SELECT r.*, u.name AS user_name FROM reviews r
              JOIN users u ON u.id=r.user_id
-             WHERE r.product_id=? ORDER BY r.created_at DESC', array($id)
+             WHERE r.product_id=? AND r.status="approved" ORDER BY r.is_featured DESC, r.created_at DESC', array($id)
         )->result_array();
 
         $related = $this->db->query(
@@ -270,7 +270,8 @@ class Shop extends CI_Controller {
                     $reviews        = $this->db->query(
                         'SELECT r.*, u.name AS user_name FROM reviews r
                          JOIN users u ON u.id=r.user_id
-                         WHERE r.product_id=? ORDER BY r.created_at DESC', array($id)
+                         WHERE r.product_id=? AND r.status="approved"
+                         ORDER BY r.is_featured DESC, r.created_at DESC', array($id)
                     )->result_array();
                     $avg_rating   = $this->spice_model->avg_rating($id);
                     $review_count = $this->spice_model->review_count($id);
