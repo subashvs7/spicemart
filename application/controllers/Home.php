@@ -455,7 +455,8 @@ class Home extends CI_Controller {
                     'INSERT INTO contacts (name,email,phone,subject,message) VALUES (?,?,?,?,?)',
                     array($name, $email, $phone, $subject, $message)
                 );
-                $success = 'Thank you! Your message has been sent. We will get back to you within 24 hours.';
+                $this->session->set_flashdata('success', 'Thank you! Your message has been sent. We will get back to you within 24 hours.');
+                redirect('contact');
             }
         }
 

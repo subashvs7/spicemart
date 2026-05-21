@@ -1852,7 +1852,7 @@ class Admin extends CI_Controller {
         if ($this->session->userdata(SESS_HEAD.'_user_role') !== 'admin') redirect('admin');
         $this->_admin_base($data);
 
-        $success = '';
+        $success = $this->session->flashdata('success') ?: '';
         $errors  = array();
         $tab     = $this->input->post('settings_tab') ?: ($this->input->get('tab') ?: 'general');
 
@@ -1867,12 +1867,8 @@ class Admin extends CI_Controller {
                 'seo'     => array('meta_title','meta_desc','google_analytics'),
             );
 
-            $keys = isset($map[$tab]) ? $map[$tab] : array();
-            foreach ($keys as $key) {
-                $this->_save_setting($key, trim($this->input->post($key) ?: ''));
-            }
-
-            // Logo upload (general tab only)
+            // Logo upload (general tab only) — validate BEFORE saving anything
+            $new_logo = '';
             if ($tab === 'general' && !empty($_FILES['site_logo']['name'])) {
                 if (!is_dir(FCPATH.'uploads/logo/')) {
                     mkdir(FCPATH.'uploads/logo/', 0755, true);
@@ -1884,16 +1880,24 @@ class Admin extends CI_Controller {
                     'encrypt_name'  => TRUE,
                 ));
                 if ($this->upload->do_upload('site_logo')) {
-                    $this->_save_setting('site_logo', $this->upload->data('file_name'));
+                    $new_logo = $this->upload->data('file_name');
                 } else {
                     $errors[] = $this->upload->display_errors('','');
                 }
             }
 
+            // Only save to DB if no errors (keeps save + redirect atomic)
             if (empty($errors)) {
-                $success = 'Settings saved successfully.';
-                // Bust the model cache so next page load picks up new values
-                $this->spice_model->get_all_settings();
+                $keys = isset($map[$tab]) ? $map[$tab] : array();
+                foreach ($keys as $key) {
+                    $this->_save_setting($key, trim($this->input->post($key) ?: ''));
+                }
+                if ($new_logo) {
+                    $this->_save_setting('site_logo', $new_logo);
+                }
+                $this->session->set_flashdata('success', 'Settings saved successfully.');
+                header('Location: '.site_url('admin-settings').'?tab='.$tab, true, 303);
+                exit;
             }
         }
 
