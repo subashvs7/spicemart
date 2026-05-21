@@ -7,8 +7,30 @@
         <h3 class="box-title"><i class="fa fa-envelope"></i> Contact Messages</h3>
       </div>
       <div class="box-body">
+        <!-- Filter bar -->
+        <div class="row" style="margin-bottom:10px">
+          <div class="col-sm-5">
+            <div class="input-group input-group-sm">
+              <span class="input-group-addon"><i class="fa fa-search"></i></span>
+              <input type="text" class="form-control" id="msg_search" placeholder="Search name, email, subject…">
+              <span class="input-group-btn">
+                <button type="button" class="btn btn-default" id="msg_clear" title="Clear"><i class="fa fa-times"></i></button>
+              </span>
+            </div>
+          </div>
+          <div class="col-sm-2 col-xs-6">
+            <select class="form-control input-sm" id="msg_fRead">
+              <option value="">All Messages</option>
+              <option value="unread">Unread</option>
+              <option value="read">Read</option>
+            </select>
+          </div>
+          <div class="col-sm-5" style="line-height:30px">
+            <small class="text-muted" id="msg_count"></small>
+          </div>
+        </div>
         <div class="table-responsive">
-          <table class="table table-bordered table-hover admin-table">
+          <table class="table table-bordered table-hover admin-table" id="msg_table">
             <thead>
               <tr><th>Name</th><th>Email</th><th>Subject</th><th>Date</th><th></th></tr>
             </thead>
@@ -37,6 +59,33 @@
       </div>
     </div>
   </div>
+
+  <script>
+  (function () {
+    var rows   = Array.from(document.querySelectorAll('#msg_table tbody tr'));
+    var search = document.getElementById('msg_search');
+    var count  = document.getElementById('msg_count');
+    function run() {
+      var q  = search.value.trim().toLowerCase();
+      var fR = document.getElementById('msg_fRead').value;
+      var n = 0;
+      rows.forEach(function (r) {
+        if (r.cells.length < 2) { r.style.display = ''; return; }
+        var isUnread = r.classList.contains('warning');
+        var readOk = !fR
+          || (fR === 'unread' && isUnread)
+          || (fR === 'read'   && !isUnread);
+        var ok = (!q || r.textContent.toLowerCase().indexOf(q) >= 0) && readOk;
+        r.style.display = ok ? '' : 'none';
+        if (ok) n++;
+      });
+      count.textContent = n + ' / ' + rows.length + ' messages';
+    }
+    search.addEventListener('input', run);
+    document.getElementById('msg_clear').addEventListener('click', function () { search.value = ''; run(); });
+    document.getElementById('msg_fRead').addEventListener('change', run);
+  })();
+  </script>
 
   <?php if ($view_msg): ?>
   <div class="col-md-5">

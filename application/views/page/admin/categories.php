@@ -24,8 +24,38 @@
       <div class="alert alert-success"><?php echo htmlspecialchars($success); ?></div>
     <?php endif; ?>
 
+    <!-- Filter bar -->
+    <div class="row" style="margin-bottom:10px">
+      <div class="col-sm-4">
+        <div class="input-group input-group-sm">
+          <span class="input-group-addon"><i class="fa fa-search"></i></span>
+          <input type="text" class="form-control" id="cat_search" placeholder="Search name, slug…">
+          <span class="input-group-btn">
+            <button type="button" class="btn btn-default" id="cat_clear" title="Clear"><i class="fa fa-times"></i></button>
+          </span>
+        </div>
+      </div>
+      <div class="col-sm-2 col-xs-6">
+        <select class="form-control input-sm" id="cat_fStatus">
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+      <div class="col-sm-2 col-xs-6">
+        <select class="form-control input-sm" id="cat_fLevel">
+          <option value="">All Levels</option>
+          <option value="top level">Top Level</option>
+          <option value="↳">Sub-category</option>
+        </select>
+      </div>
+      <div class="col-sm-4" style="line-height:30px">
+        <small class="text-muted" id="cat_count"></small>
+      </div>
+    </div>
+
     <div class="table-responsive">
-      <table class="table table-bordered table-hover admin-table">
+      <table class="table table-bordered table-hover admin-table" id="cat_table">
         <thead>
           <tr><th>Image</th><th>Name</th><th>Parent</th><th>Slug</th><th>Products</th><th>Status</th><th>Actions</th></tr>
         </thead>
@@ -77,6 +107,35 @@
     </div>
   </div>
 </div>
+
+<script>
+(function () {
+  var rows   = Array.from(document.querySelectorAll('#cat_table tbody tr'));
+  var search = document.getElementById('cat_search');
+  var count  = document.getElementById('cat_count');
+  function run() {
+    var q  = search.value.trim().toLowerCase();
+    var fS = document.getElementById('cat_fStatus').value.toLowerCase();
+    var fL = document.getElementById('cat_fLevel').value.toLowerCase();
+    var n = 0;
+    rows.forEach(function (r) {
+      if (r.cells.length < 2) { r.style.display = ''; return; }
+      var txt  = r.textContent.toLowerCase();
+      var stat = r.cells[5] ? r.cells[5].textContent.trim().toLowerCase() : '';
+      var par  = r.cells[2] ? r.cells[2].textContent.trim().toLowerCase() : '';
+      var ok = (!q || txt.indexOf(q) >= 0)
+            && (!fS || stat.indexOf(fS) >= 0)
+            && (!fL || par.indexOf(fL) >= 0);
+      r.style.display = ok ? '' : 'none';
+      if (ok) n++;
+    });
+    count.textContent = n + ' / ' + rows.length + ' categories';
+  }
+  search.addEventListener('input', run);
+  document.getElementById('cat_clear').addEventListener('click', function () { search.value = ''; run(); });
+  ['cat_fStatus','cat_fLevel'].forEach(function (id) { document.getElementById(id).addEventListener('change', run); });
+})();
+</script>
 
 <!-- Category Modal -->
 <div class="modal fade" id="catModal" tabindex="-1">

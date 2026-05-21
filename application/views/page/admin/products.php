@@ -98,8 +98,39 @@
     </script>
     <?php endif; ?>
 
+    <!-- Filter bar -->
+    <div class="row" style="margin-bottom:10px">
+      <div class="col-sm-4">
+        <div class="input-group input-group-sm">
+          <span class="input-group-addon"><i class="fa fa-search"></i></span>
+          <input type="text" class="form-control" id="prod_search" placeholder="Search name, code, brand…">
+          <span class="input-group-btn">
+            <button type="button" class="btn btn-default" id="prod_clear" title="Clear"><i class="fa fa-times"></i></button>
+          </span>
+        </div>
+      </div>
+      <div class="col-sm-2 col-xs-6">
+        <select class="form-control input-sm" id="prod_fStatus">
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+      <div class="col-sm-3 col-xs-6">
+        <select class="form-control input-sm" id="prod_fCat">
+          <option value="">All Categories</option>
+          <?php foreach ($categories as $cat): ?>
+            <option value="<?php echo htmlspecialchars(strtolower($cat['name'])); ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="col-sm-3" style="line-height:30px">
+        <small class="text-muted" id="prod_count"></small>
+      </div>
+    </div>
+
     <div class="table-responsive">
-      <table class="table table-bordered table-hover admin-table">
+      <table class="table table-bordered table-hover admin-table" id="prod_table">
         <thead>
           <tr>
             <th>Image</th><th>Name</th><th>Category</th>
@@ -189,6 +220,37 @@
   </div>
 </div>
 
+
+<script>
+(function () {
+  var rows   = Array.from(document.querySelectorAll('#prod_table tbody tr'));
+  var search = document.getElementById('prod_search');
+  var count  = document.getElementById('prod_count');
+  function run() {
+    var q   = search.value.trim().toLowerCase();
+    var fS  = document.getElementById('prod_fStatus').value.toLowerCase();
+    var fC  = document.getElementById('prod_fCat').value.toLowerCase();
+    var n = 0;
+    rows.forEach(function (r) {
+      if (r.cells.length < 2) { r.style.display = ''; return; }
+      var txt  = r.textContent.toLowerCase();
+      var stat = r.cells[8] ? r.cells[8].textContent.trim().toLowerCase() : '';
+      var cat  = r.cells[2] ? r.cells[2].textContent.trim().toLowerCase() : '';
+      var ok = (!q || txt.indexOf(q) >= 0)
+            && (!fS || stat.indexOf(fS) >= 0)
+            && (!fC || cat.indexOf(fC) >= 0);
+      r.style.display = ok ? '' : 'none';
+      if (ok) n++;
+    });
+    count.textContent = n + ' / ' + rows.length + ' products';
+  }
+  search.addEventListener('input', run);
+  document.getElementById('prod_clear').addEventListener('click', function () { search.value = ''; run(); });
+  ['prod_fStatus', 'prod_fCat'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', run);
+  });
+})();
+</script>
 
 <!-- ═══════════════════════════════════════════════════════════════
      UNIFIED ADD / EDIT PRODUCT MODAL  (3 tabs, tabs 2-3 for edit)

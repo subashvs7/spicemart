@@ -11,8 +11,40 @@
         <h3 class="box-title"><i class="fa fa-undo"></i> Return &amp; Cancel Requests</h3>
       </div>
       <div class="box-body">
+        <!-- Filter bar -->
+        <div class="row" style="margin-bottom:10px">
+          <div class="col-sm-4">
+            <div class="input-group input-group-sm">
+              <span class="input-group-addon"><i class="fa fa-search"></i></span>
+              <input type="text" class="form-control" id="ret_search" placeholder="Search order #, customer…">
+              <span class="input-group-btn">
+                <button type="button" class="btn btn-default" id="ret_clear" title="Clear"><i class="fa fa-times"></i></button>
+              </span>
+            </div>
+          </div>
+          <div class="col-sm-2 col-xs-6">
+            <select class="form-control input-sm" id="ret_fType">
+              <option value="">All Types</option>
+              <option value="cancel">Cancel</option>
+              <option value="return">Return</option>
+            </select>
+          </div>
+          <div class="col-sm-2 col-xs-6">
+            <select class="form-control input-sm" id="ret_fStatus">
+              <option value="">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+              <option value="resolved">Resolved</option>
+            </select>
+          </div>
+          <div class="col-sm-4" style="line-height:30px">
+            <small class="text-muted" id="ret_count"></small>
+          </div>
+        </div>
+
         <div class="table-responsive">
-          <table class="table table-bordered table-hover admin-table">
+          <table class="table table-bordered table-hover admin-table" id="ret_table">
             <thead>
               <tr><th>ID</th><th>Order</th><th>Customer</th><th>Type</th><th>Reason</th><th>Status</th><th>Date</th><th>Actions</th></tr>
             </thead>
@@ -56,6 +88,34 @@
     </div>
   </div>
 </div>
+
+<script>
+(function () {
+  var rows   = Array.from(document.querySelectorAll('#ret_table tbody tr'));
+  var search = document.getElementById('ret_search');
+  var count  = document.getElementById('ret_count');
+  function run() {
+    var q  = search.value.trim().toLowerCase();
+    var fT = document.getElementById('ret_fType').value.toLowerCase();
+    var fS = document.getElementById('ret_fStatus').value.toLowerCase();
+    var n = 0;
+    rows.forEach(function (r) {
+      if (r.cells.length < 2) { r.style.display = ''; return; }
+      var type = r.cells[3] ? r.cells[3].textContent.trim().toLowerCase() : '';
+      var stat = r.cells[5] ? r.cells[5].textContent.trim().toLowerCase() : '';
+      var ok = (!q  || r.textContent.toLowerCase().indexOf(q) >= 0)
+            && (!fT || type.indexOf(fT) >= 0)
+            && (!fS || stat.indexOf(fS) >= 0);
+      r.style.display = ok ? '' : 'none';
+      if (ok) n++;
+    });
+    count.textContent = n + ' / ' + rows.length + ' requests';
+  }
+  search.addEventListener('input', run);
+  document.getElementById('ret_clear').addEventListener('click', function () { search.value = ''; run(); });
+  ['ret_fType','ret_fStatus'].forEach(function (id) { document.getElementById(id).addEventListener('change', run); });
+})();
+</script>
 
 <!-- Return Review Modal -->
 <div class="modal fade" id="returnModal" tabindex="-1">

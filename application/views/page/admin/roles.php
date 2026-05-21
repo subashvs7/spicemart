@@ -20,8 +20,31 @@
           <div class="alert alert-success"><?php echo htmlspecialchars($success); ?></div>
         <?php endif; ?>
 
+        <!-- Filter bar -->
+        <div class="row" style="margin-bottom:10px">
+          <div class="col-sm-5">
+            <div class="input-group input-group-sm">
+              <span class="input-group-addon"><i class="fa fa-search"></i></span>
+              <input type="text" class="form-control" id="role_search" placeholder="Search name, email…">
+              <span class="input-group-btn">
+                <button type="button" class="btn btn-default" id="role_clear" title="Clear"><i class="fa fa-times"></i></button>
+              </span>
+            </div>
+          </div>
+          <div class="col-sm-2 col-xs-6">
+            <select class="form-control input-sm" id="role_fRole">
+              <option value="">All Roles</option>
+              <option value="admin">Admin</option>
+              <option value="staff">Staff</option>
+            </select>
+          </div>
+          <div class="col-sm-5" style="line-height:30px">
+            <small class="text-muted" id="role_count"></small>
+          </div>
+        </div>
+
         <div class="table-responsive">
-          <table class="table table-bordered table-hover admin-table">
+          <table class="table table-bordered table-hover admin-table" id="role_table">
             <thead>
               <tr><th>Name</th><th>Email</th><th>Role</th><th>Permissions</th><th>Actions</th></tr>
             </thead>
@@ -84,6 +107,30 @@
     </div>
   </div>
 </div>
+
+<script>
+(function () {
+  var rows   = Array.from(document.querySelectorAll('#role_table tbody tr'));
+  var search = document.getElementById('role_search');
+  var count  = document.getElementById('role_count');
+  function run() {
+    var q  = search.value.trim().toLowerCase();
+    var fR = document.getElementById('role_fRole').value.toLowerCase();
+    var n = 0;
+    rows.forEach(function (r) {
+      if (r.cells.length < 2) { r.style.display = ''; return; }
+      var role = r.cells[2] ? r.cells[2].textContent.trim().toLowerCase() : '';
+      var ok = (!q || r.textContent.toLowerCase().indexOf(q) >= 0) && (!fR || role.indexOf(fR) >= 0);
+      r.style.display = ok ? '' : 'none';
+      if (ok) n++;
+    });
+    count.textContent = n + ' / ' + rows.length + ' users';
+  }
+  search.addEventListener('input', run);
+  document.getElementById('role_clear').addEventListener('click', function () { search.value = ''; run(); });
+  document.getElementById('role_fRole').addEventListener('change', run);
+})();
+</script>
 
 <!-- Role Modal -->
 <div class="modal fade" id="roleModal" tabindex="-1">

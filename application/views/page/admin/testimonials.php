@@ -15,8 +15,41 @@
       <div class="alert alert-success"><?php echo htmlspecialchars($success); ?></div>
     <?php endif; ?>
 
+    <!-- Filter bar -->
+    <div class="row" style="margin-bottom:10px">
+      <div class="col-sm-4">
+        <div class="input-group input-group-sm">
+          <span class="input-group-addon"><i class="fa fa-search"></i></span>
+          <input type="text" class="form-control" id="test_search" placeholder="Search customer, quote…">
+          <span class="input-group-btn">
+            <button type="button" class="btn btn-default" id="test_clear" title="Clear"><i class="fa fa-times"></i></button>
+          </span>
+        </div>
+      </div>
+      <div class="col-sm-2 col-xs-6">
+        <select class="form-control input-sm" id="test_fRating">
+          <option value="">All Ratings</option>
+          <option value="5">⭐⭐⭐⭐⭐ 5</option>
+          <option value="4">⭐⭐⭐⭐ 4</option>
+          <option value="3">⭐⭐⭐ 3</option>
+          <option value="2">⭐⭐ 2</option>
+          <option value="1">⭐ 1</option>
+        </select>
+      </div>
+      <div class="col-sm-2 col-xs-6">
+        <select class="form-control input-sm" id="test_fStatus">
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="hidden">Hidden</option>
+        </select>
+      </div>
+      <div class="col-sm-4" style="line-height:30px">
+        <small class="text-muted" id="test_count"></small>
+      </div>
+    </div>
+
     <div class="table-responsive">
-      <table class="table table-bordered table-hover admin-table">
+      <table class="table table-bordered table-hover admin-table" id="test_table">
         <thead>
           <tr><th>Customer</th><th style="width:100px">Rating</th><th>Quote</th><th style="width:70px">Order</th><th style="width:80px">Status</th><th style="width:80px">Actions</th></tr>
         </thead>
@@ -51,6 +84,34 @@
     </div>
   </div>
 </div>
+
+<script>
+(function () {
+  var rows   = Array.from(document.querySelectorAll('#test_table tbody tr'));
+  var search = document.getElementById('test_search');
+  var count  = document.getElementById('test_count');
+  function run() {
+    var q  = search.value.trim().toLowerCase();
+    var fR = document.getElementById('test_fRating').value;
+    var fS = document.getElementById('test_fStatus').value.toLowerCase();
+    var n = 0;
+    rows.forEach(function (r) {
+      if (r.cells.length < 2) { r.style.display = ''; return; }
+      var rating = r.cells[1] ? (r.cells[1].textContent.match(/⭐/g) || []).length : 0;
+      var stat   = r.cells[4] ? r.cells[4].textContent.trim().toLowerCase() : '';
+      var ok = (!q  || r.textContent.toLowerCase().indexOf(q) >= 0)
+            && (!fR || rating == parseInt(fR, 10))
+            && (!fS || stat.indexOf(fS) >= 0);
+      r.style.display = ok ? '' : 'none';
+      if (ok) n++;
+    });
+    count.textContent = n + ' / ' + rows.length + ' testimonials';
+  }
+  search.addEventListener('input', run);
+  document.getElementById('test_clear').addEventListener('click', function () { search.value = ''; run(); });
+  ['test_fRating','test_fStatus'].forEach(function (id) { document.getElementById(id).addEventListener('change', run); });
+})();
+</script>
 
 <!-- Modal -->
 <div class="modal fade" id="testimonialModal" tabindex="-1">

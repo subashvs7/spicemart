@@ -18,8 +18,31 @@
       <div class="alert alert-success"><?php echo htmlspecialchars($success); ?></div>
     <?php endif; ?>
 
+    <!-- Filter bar -->
+    <div class="row" style="margin-bottom:10px">
+      <div class="col-sm-5">
+        <div class="input-group input-group-sm">
+          <span class="input-group-addon"><i class="fa fa-search"></i></span>
+          <input type="text" class="form-control" id="cms_search" placeholder="Search title, slug…">
+          <span class="input-group-btn">
+            <button type="button" class="btn btn-default" id="cms_clear" title="Clear"><i class="fa fa-times"></i></button>
+          </span>
+        </div>
+      </div>
+      <div class="col-sm-2 col-xs-6">
+        <select class="form-control input-sm" id="cms_fStatus">
+          <option value="">All Status</option>
+          <option value="published">Published</option>
+          <option value="draft">Draft</option>
+        </select>
+      </div>
+      <div class="col-sm-5" style="line-height:30px">
+        <small class="text-muted" id="cms_count"></small>
+      </div>
+    </div>
+
     <div class="table-responsive">
-      <table class="table table-bordered table-hover admin-table">
+      <table class="table table-bordered table-hover admin-table" id="cms_table">
         <thead>
           <tr><th>Title</th><th>Slug</th><th>Status</th><th>Actions</th></tr>
         </thead>
@@ -57,6 +80,30 @@
     </div>
   </div>
 </div>
+
+<script>
+(function () {
+  var rows   = Array.from(document.querySelectorAll('#cms_table tbody tr'));
+  var search = document.getElementById('cms_search');
+  var count  = document.getElementById('cms_count');
+  function run() {
+    var q  = search.value.trim().toLowerCase();
+    var fS = document.getElementById('cms_fStatus').value.toLowerCase();
+    var n = 0;
+    rows.forEach(function (r) {
+      if (r.cells.length < 2) { r.style.display = ''; return; }
+      var stat = r.cells[2] ? r.cells[2].textContent.trim().toLowerCase() : '';
+      var ok = (!q || r.textContent.toLowerCase().indexOf(q) >= 0) && (!fS || stat.indexOf(fS) >= 0);
+      r.style.display = ok ? '' : 'none';
+      if (ok) n++;
+    });
+    count.textContent = n + ' / ' + rows.length + ' pages';
+  }
+  search.addEventListener('input', run);
+  document.getElementById('cms_clear').addEventListener('click', function () { search.value = ''; run(); });
+  document.getElementById('cms_fStatus').addEventListener('change', run);
+})();
+</script>
 
 <!-- Page Modal -->
 <div class="modal fade" id="pageModal" tabindex="-1">

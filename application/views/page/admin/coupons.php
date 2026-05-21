@@ -18,8 +18,38 @@
       <div class="alert alert-success"><?php echo htmlspecialchars($success); ?></div>
     <?php endif; ?>
 
+    <!-- Filter bar -->
+    <div class="row" style="margin-bottom:10px">
+      <div class="col-sm-4">
+        <div class="input-group input-group-sm">
+          <span class="input-group-addon"><i class="fa fa-search"></i></span>
+          <input type="text" class="form-control" id="coupon_search" placeholder="Search coupon code…">
+          <span class="input-group-btn">
+            <button type="button" class="btn btn-default" id="coupon_clear" title="Clear"><i class="fa fa-times"></i></button>
+          </span>
+        </div>
+      </div>
+      <div class="col-sm-2 col-xs-6">
+        <select class="form-control input-sm" id="coupon_fType">
+          <option value="">All Types</option>
+          <option value="percent">Percent %</option>
+          <option value="flat">Flat ₹</option>
+        </select>
+      </div>
+      <div class="col-sm-2 col-xs-6">
+        <select class="form-control input-sm" id="coupon_fStatus">
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+      <div class="col-sm-4" style="line-height:30px">
+        <small class="text-muted" id="coupon_count"></small>
+      </div>
+    </div>
+
     <div class="table-responsive">
-      <table class="table table-bordered table-hover admin-table">
+      <table class="table table-bordered table-hover admin-table" id="coupon_table">
         <thead>
           <tr><th>Code</th><th>Type</th><th>Value</th><th>Min Order</th><th>Max Disc.</th><th>Usage</th><th>Expires</th><th>Status</th><th>Actions</th></tr>
         </thead>
@@ -65,6 +95,34 @@
     </div>
   </div>
 </div>
+
+<script>
+(function () {
+  var rows   = Array.from(document.querySelectorAll('#coupon_table tbody tr'));
+  var search = document.getElementById('coupon_search');
+  var count  = document.getElementById('coupon_count');
+  function run() {
+    var q  = search.value.trim().toLowerCase();
+    var fT = document.getElementById('coupon_fType').value.toLowerCase();
+    var fS = document.getElementById('coupon_fStatus').value.toLowerCase();
+    var n = 0;
+    rows.forEach(function (r) {
+      if (r.cells.length < 2) { r.style.display = ''; return; }
+      var type = r.cells[1] ? r.cells[1].textContent.trim().toLowerCase() : '';
+      var stat = r.cells[7] ? r.cells[7].textContent.trim().toLowerCase() : '';
+      var ok = (!q || r.textContent.toLowerCase().indexOf(q) >= 0)
+            && (!fT || type.indexOf(fT) >= 0)
+            && (!fS || stat.indexOf(fS) >= 0);
+      r.style.display = ok ? '' : 'none';
+      if (ok) n++;
+    });
+    count.textContent = n + ' / ' + rows.length + ' coupons';
+  }
+  search.addEventListener('input', run);
+  document.getElementById('coupon_clear').addEventListener('click', function () { search.value = ''; run(); });
+  ['coupon_fType','coupon_fStatus'].forEach(function (id) { document.getElementById(id).addEventListener('change', run); });
+})();
+</script>
 
 <!-- Coupon Modal -->
 <div class="modal fade" id="couponModal" tabindex="-1">

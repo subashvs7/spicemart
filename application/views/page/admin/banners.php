@@ -18,8 +18,38 @@
       <div class="alert alert-success"><?php echo htmlspecialchars($success); ?></div>
     <?php endif; ?>
 
+    <!-- Filter bar -->
+    <div class="row" style="margin-bottom:10px">
+      <div class="col-sm-4">
+        <div class="input-group input-group-sm">
+          <span class="input-group-addon"><i class="fa fa-search"></i></span>
+          <input type="text" class="form-control" id="banner_search" placeholder="Search title, subtitle…">
+          <span class="input-group-btn">
+            <button type="button" class="btn btn-default" id="banner_clear" title="Clear"><i class="fa fa-times"></i></button>
+          </span>
+        </div>
+      </div>
+      <div class="col-sm-2 col-xs-6">
+        <select class="form-control input-sm" id="banner_fType">
+          <option value="">All Types</option>
+          <option value="slider">Slider</option>
+          <option value="promo">Promo</option>
+        </select>
+      </div>
+      <div class="col-sm-2 col-xs-6">
+        <select class="form-control input-sm" id="banner_fStatus">
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+      <div class="col-sm-4" style="line-height:30px">
+        <small class="text-muted" id="banner_count"></small>
+      </div>
+    </div>
+
     <div class="table-responsive">
-      <table class="table table-bordered table-hover admin-table">
+      <table class="table table-bordered table-hover admin-table" id="banner_table">
         <thead>
           <tr><th>Image</th><th>Title</th><th>Type</th><th>Sort</th><th>Status</th><th>Actions</th></tr>
         </thead>
@@ -64,6 +94,34 @@
     </div>
   </div>
 </div>
+
+<script>
+(function () {
+  var rows   = Array.from(document.querySelectorAll('#banner_table tbody tr'));
+  var search = document.getElementById('banner_search');
+  var count  = document.getElementById('banner_count');
+  function run() {
+    var q  = search.value.trim().toLowerCase();
+    var fT = document.getElementById('banner_fType').value.toLowerCase();
+    var fS = document.getElementById('banner_fStatus').value.toLowerCase();
+    var n = 0;
+    rows.forEach(function (r) {
+      if (r.cells.length < 2) { r.style.display = ''; return; }
+      var type = r.cells[2] ? r.cells[2].textContent.trim().toLowerCase() : '';
+      var stat = r.cells[4] ? r.cells[4].textContent.trim().toLowerCase() : '';
+      var ok = (!q || r.textContent.toLowerCase().indexOf(q) >= 0)
+            && (!fT || type.indexOf(fT) >= 0)
+            && (!fS || stat.indexOf(fS) >= 0);
+      r.style.display = ok ? '' : 'none';
+      if (ok) n++;
+    });
+    count.textContent = n + ' / ' + rows.length + ' banners';
+  }
+  search.addEventListener('input', run);
+  document.getElementById('banner_clear').addEventListener('click', function () { search.value = ''; run(); });
+  ['banner_fType','banner_fStatus'].forEach(function (id) { document.getElementById(id).addEventListener('change', run); });
+})();
+</script>
 
 <!-- Banner Modal -->
 <div class="modal fade" id="bannerModal" tabindex="-1">
