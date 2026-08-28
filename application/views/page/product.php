@@ -1,5 +1,21 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 
+<style>
+/* Rich-text product description (CKEditor output) */
+.product-description > *:last-child { margin-bottom: 0; }
+.product-description p  { margin-bottom: .75rem; }
+.product-description ul,
+.product-description ol { padding-left: 1.25rem; margin-bottom: .75rem; }
+.product-description h2 { font-size: 1.25rem; }
+.product-description h3 { font-size: 1.1rem; }
+.product-description h4 { font-size: 1rem; }
+.product-description img    { max-width: 100%; height: auto; border-radius: 8px; }
+.product-description table  { width: 100%; margin-bottom: .75rem; }
+.product-description table td,
+.product-description table th { border: 1px solid #e5e5e5; padding: .4rem .6rem; }
+.product-description a { color: var(--saffron); }
+</style>
+
 <!-- Breadcrumb -->
 <div class="container mt-3">
   <nav aria-label="breadcrumb">
@@ -170,7 +186,7 @@
       </div>
       <?php endif; ?>
 
-      <p class="text-muted mb-4" style="line-height:1.75"><?php echo nl2br(htmlspecialchars($product['description'] ?? '')); ?></p>
+      <div class="text-muted mb-4 product-description" style="line-height:1.75"><?php echo $this->spice_model->rich_text($product['description'] ?? ''); ?></div>
 
       <div class="d-flex gap-3 align-items-center mb-4 flex-wrap">
         <?php if ($product['stock_qty'] > 0): ?>

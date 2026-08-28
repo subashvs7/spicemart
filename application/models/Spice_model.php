@@ -328,4 +328,26 @@ class Spice_model extends CI_Model {
         if (strlen($str) <= $len) return $str;
         return substr($str, 0, $len).'…';
     }
+
+    /* Rich text (CKEditor) → display HTML.
+       Values saved before the editor existed are plain text — keep their line breaks. */
+    public function rich_text($str)
+    {
+        $str = (string)($str ?? '');
+        if ($str === '') return '';
+        if ($str === strip_tags($str)) return nl2br(htmlspecialchars($str));
+        return $str;
+    }
+
+    /* Rich text (CKEditor) → single-line plain text, for table cells and previews. */
+    public function html_to_text($str)
+    {
+        $str = str_replace(
+            array('</p>', '</div>', '</li>', '</h2>', '</h3>', '</h4>', '<br>', '<br/>', '<br />'),
+            ' ',
+            (string)($str ?? '')
+        );
+        $str = html_entity_decode(strip_tags($str), ENT_QUOTES, 'UTF-8');
+        return trim(preg_replace('/\s+/u', ' ', $str));
+    }
 }

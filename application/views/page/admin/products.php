@@ -150,7 +150,7 @@
                 </span>
               <?php endif; ?><br>
               <small class="text-muted">
-                <?php echo htmlspecialchars($this->spice_model->truncate_text($p['description'] ?? '', 50)); ?>
+                <?php echo htmlspecialchars($this->spice_model->truncate_text($this->spice_model->html_to_text($p['description'] ?? ''), 50)); ?>
               </small>
               <?php if (!empty($p['brand_name'])): ?>
                 <br><span class="label label-default" style="font-size:.7rem">
@@ -350,8 +350,9 @@
 
                 <div class="col-md-12">
                   <div class="form-group">
-                    <label>Description</label>
-                    <textarea class="form-control" name="description" id="pmDesc" rows="3"></textarea>
+                    <label>Description <small class="text-muted">(rich text — shown on the product page)</small></label>
+                    <!-- CKEditor replaces this textarea — do NOT add a required attribute -->
+                    <textarea class="form-control" name="description" id="pmDesc" rows="6"></textarea>
                   </div>
                 </div>
 

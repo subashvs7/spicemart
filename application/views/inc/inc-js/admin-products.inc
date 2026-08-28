@@ -577,3 +577,80 @@ $(function () {
 
 });
 </script>
+
+<!-- ═══ CKEditor 4 for the product Description field ═══════════════ -->
+<script src="https://cdn.ckeditor.com/4.22.1/full/ckeditor.js"></script>
+
+<style>
+/* Keep the editor inside the scrolling modal body */
+#productModal .cke        { border-radius: 4px; border: 1px solid #d2d6de !important; max-width: 100%; }
+#productModal .cke_top    { border-radius: 4px 4px 0 0; background: #f4f4f4 !important; border-bottom: 1px solid #d2d6de !important; }
+#productModal .cke_bottom { border-radius: 0 0 4px 4px; background: #f4f4f4 !important; border-top: 1px solid #d2d6de !important; }
+#productModal .cke_editable { min-height: 200px; }
+#productModal .cke_focus  { box-shadow: 0 0 0 3px rgba(255,107,53,.2) !important; }
+</style>
+
+<script>
+$(function () {
+
+  /* CDN unreachable → leave the plain textarea working. */
+  if (typeof CKEDITOR === 'undefined') return;
+
+  /* Bootstrap 3 steals focus from CKEditor's Link/Image dialogs. */
+  $.fn.modal.Constructor.prototype.enforceFocus = function () {};
+
+  var descId = 'pmDesc';
+
+  var CK_CONFIG = {
+    customConfig   : '',
+    height         : 260,
+    resize_enabled : true,
+    allowedContent : true,
+    entities       : false,
+    format_tags    : 'p;h2;h3;h4',
+    toolbar : [
+      { name: 'document',    items: ['Source', '-', 'Maximize'] },
+      { name: 'clipboard',   items: ['PasteText', 'PasteFromWord', '-', 'Undo', 'Redo'] },
+      { name: 'styles',      items: ['Format'] },
+      { name: 'basicstyles', items: ['Bold', 'Italic', 'Underline', '-', 'RemoveFormat'] },
+      '/',
+      { name: 'paragraph',   items: ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-',
+                                     'JustifyLeft', 'JustifyCenter', 'JustifyRight', '-', 'Blockquote'] },
+      { name: 'links',       items: ['Link', 'Unlink'] },
+      { name: 'insert',      items: ['Table', 'HorizontalRule', 'SpecialChar'] }
+    ],
+    contentsCss : [
+      'body { font-family:"Source Sans Pro",sans-serif; font-size:14px; color:#333; line-height:1.7; padding:8px 14px; }'
+    ]
+  };
+
+  function getDescEditor()  { return CKEDITOR.instances[descId] || null; }
+
+  function destroyDescEditor() {
+    var ed = getDescEditor();
+    if (ed) ed.destroy(true);          /* true = don't write back into the textarea */
+  }
+
+  /* SHOWN → build the editor from whatever add/edit mode put in the textarea. */
+  $('#productModal').on('shown.bs.modal', function () {
+    var content = document.getElementById(descId).value || '';
+    destroyDescEditor();
+    var ed = CKEDITOR.replace(descId, CK_CONFIG);
+    ed.on('instanceReady', function () { ed.setData(content); });
+  });
+
+  /* HIDDEN → tear down. Runs after resetProductModal(); form.reset() cannot
+     clear a textarea that CKEditor owns, so clear it explicitly. */
+  $('#productModal').on('hidden.bs.modal', function () {
+    destroyDescEditor();
+    $('#' + descId).val('');
+  });
+
+  /* SUBMIT → push the editor HTML back into the textarea so it posts. */
+  $('#pmForm').on('submit', function () {
+    var ed = getDescEditor();
+    if (ed) document.getElementById(descId).value = ed.getData();
+  });
+
+});
+</script>
